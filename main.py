@@ -15,11 +15,17 @@ additional_datas = get_additional_datas()
 tmc_categories = get_tmc_categories()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Или ["http://localhost:3000"] — для безопасности
+    allow_origins=[
+        "http://192.168.2.112",
+        "http://192.168.2.112:80",
+        "http://localhost",
+        "http://127.0.0.1"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
