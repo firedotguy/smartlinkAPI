@@ -19,7 +19,7 @@ def find_agreement(ls: str):
     return [str(names['Id'])]
 
 def get_customers_data(ids: list):
-    customers = get(f'{api}customer&action=get_data&id={','.join(ids)}', verify=False).json()
+    customers = get(f"{api}customer&action=get_data&id={','.join(ids)}", verify=False).json()
     if 'data' not in customers:
         return []
     customers = customers['data']
@@ -41,7 +41,7 @@ def get_inventory(id: int):
     return []
 
 def get_inventory_data(ids: list):
-    inventory = get(f'{api}inventory&action=get_inventory_catalog&id={','.join([str(i['inventory_type_id']) for i in ids])}', verify=False).json()['data']
+    inventory = get(f"{api}inventory&action=get_inventory_catalog&id={','.join([str(i['inventory_type_id']) for i in ids])}", verify=False).json()['data']
     return [{'id': str(i['id']), 'name': convert(i['name']), 'catalog': i['inventory_section_catalog_id']} for i in inventory.values()]
 
 def get_tariffs():
