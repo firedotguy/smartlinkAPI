@@ -1,5 +1,5 @@
 def convert(data: str):
-    return data.replace('&#047;', '/')
+    return data.replace('&#047;', '/').replace('&#037;', '%').replace('&#035;', '#')
 
 def parse_agreement(agreement):
         if agreement:
