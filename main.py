@@ -445,7 +445,7 @@ def neomobile_inventory(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     data = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')['data'].values()
-    names = api_call('inventory', 'get_inventory_catalog', f'id={','.join([str(i['inventory_type_id']) for i in data])}')['data'].values()
+    names = api_call('inventory', 'get_inventory_catalog', f"id={','.join([str(i['inventory_type_id']) for i in data])}")['data'].values()
     return {
         'status': 'success',
         'id': id,
