@@ -324,7 +324,7 @@ def neomobile_login(apikey: str, phone: str, agreement: str):
         return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, status_code=404)
 
     data = api_call('customer', 'get_data', f'id={id}')
-    if 'data' in data:
+    if 'data' not in data:
         if len(data['data']['phone']) > 0:
             if data['data']['phone'][0]['number'] != phone:
                 return JSONResponse({'status': 'fail', 'detail': 'invalid phone number'}, status_code=404)
