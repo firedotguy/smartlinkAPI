@@ -5,6 +5,7 @@ from datetime import datetime as dt
 
 from functions import *
 from api import *
+from ont import search_ont
 from config import api_key as APIKEY
 
 app = FastAPI(title='Smart Connect')
@@ -13,6 +14,8 @@ tariffs = get_tariffs()
 customer_groups = get_customer_groups()
 additional_datas = get_additional_datas()
 tmc_categories = get_tmc_categories()
+olts = get_olts()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -286,6 +289,29 @@ def create_task(customer_id: int, author_id: int, reason: str, apikey: str, phon
         'divisions': eval(divisions),
         'is_magistral': box,
         'box_id': box_id
+    }
+
+@app.get('/ont')
+def get_ont(apikey: str, customer_id: int, sn: str):
+    if APIKEY != apikey:
+        return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
+    olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={customer_id}&is_finish_data=1')['data']
+    if 'finish' not in olt:
+        return JSONResponse({'status': 'fail', 'detail': 'no olt object'}, status_code=404)
+    olt_id = olt['finish']['object_id']
+    olt = [olt for olt in olts if olt['id'] == olt_id]
+    if not olt:
+        return JSONResponse({'status': 'fail', 'detail': 'wrong olt id'}, status_code=404)
+    olt = olt[0]
+    return {
+        'status': 'OK',
+        'customer_id': customer_id,
+        'sn': sn,
+        'id': olt_id,
+        'ip': olt['host'],
+        'name': olt['name'],
+        'online': olt['online'],
+        'data': search_ont(sn, olt['host'])
     }
 
 @app.get('/customer/name')

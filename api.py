@@ -125,6 +125,16 @@ def add_comment(id, content):
 def get_tmc_categories():
     return [{'id': section['id'], 'name': section['name'], 'type_id': section['type_id']} for section in api_call('inventory', 'get_inventory_section_catalog')['data'].values()]
 
+def get_olts():
+    return [
+        {
+            'id': olt['id'],
+            'name': olt['name'],
+            'host': olt['host'],
+            'online': bool(olt['is_online'])
+        } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data'].values()
+    ]
+
 
 def api_call(cat, action, data = {}):
     return get(f'{api}{cat}&action={action}&{data}', verify=False).json()

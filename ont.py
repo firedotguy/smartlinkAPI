@@ -1,20 +1,19 @@
 from time import sleep, time
-import select
-import sys
-import subprocess
-import re
+from select import select
+from subprocess import run
+from re import search, sub, IGNORECASE
 
 from paramiko import SSHClient, AutoAddPolicy, Channel
-from config import ssh_host, ssh_user, ssh_password
+from config import ssh_user, ssh_password
 
 __version__ = 'v.13.0'
 
-def search_ont(sn: str) -> None | dict[str, str]:
+def search_ont(sn: str, host: str) -> None | dict[str, str]:
     start_time = time()
 
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
-    ssh.connect(ssh_host, username=ssh_user, password=ssh_password, timeout=2, auth_timeout=2,
+    ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
         banner_timeout=2, look_for_keys=False, allow_agent=False)
 
     channel = ssh.invoke_shell()
@@ -27,8 +26,7 @@ def search_ont(sn: str) -> None | dict[str, str]:
     channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
     sleep(1.8)
 
-    basic_output = read_output(channel, timeout=3)
-    ont_info = parse_basic_info(basic_output, sn)
+    ont_info = parse_basic_info(read_output(channel), sn)
 
     if not ont_info:
         return None
@@ -58,7 +56,7 @@ def search_ont(sn: str) -> None | dict[str, str]:
     for port_num in [1, 2]:
         channel.send(bytes(f"display ont port attribute {port_id} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
         sleep(1.3)
-        catv_output = read_output(channel, timeout=2)
+        catv_output = read_output(channel)
         catv_status = parse_catv_status(catv_output, port_num)
 
         if catv_status:
@@ -70,47 +68,41 @@ def search_ont(sn: str) -> None | dict[str, str]:
     channel.close()
     ssh.close()
 
-    total_time = time() - start_time
-
     ip = ont_info.get('ip', '').split('/')[0] if ont_info.get('ip') else None
     ping_result = ping_fast(ip)
 
-    print_result(ont_info, ping_result, total_time)
+    ont_info['ping'] = ping_result
+    ont_info['duration'] = time() - start_time
     return ont_info
 
 def clear_buffer(channel: Channel):
     if channel.recv_ready():
         channel.recv(32768)
 
-def read_output(channel: Channel, timeout: int = 3):
+def read_output(channel: Channel, timeout: int = 30):
     output = ""
-    end_time = time() + timeout
-    last_data_time = time()
+    end_time = time() + timeout * 60
 
     while time() < end_time:
-        ready, _, _ = select.select([channel], [], [], 0.03)
+        ready, _, _ = select([channel], [], [], 0.05)
         if ready:
-            try:
-                data = channel.recv(32768).decode('utf-8', errors='ignore')
-                if data:
-                    output += data
-                    last_data_time = time()
+            data = channel.recv(32768).decode('utf-8', errors='ignore')
+            if data:
+                output += data
 
-                    if "---- More ( Press 'Q' to break ) ----" in data:
-                        channel.send(bytes(" ", 'utf-8'))
-                        sleep(0.03)
+                if "---- More ( Press 'Q' to break ) ----" in data:
+                    channel.send(bytes(" ", 'utf-8'))
+                if '#' in data:
                     break
-            except:
-                break
-        else:
-            if time() - last_data_time > 0.8:
-                break
+                sleep(0.01)
+        if end_time < time():
+            break
 
     return output
 
-def parse_basic_info(output: str, sn) -> dict | None:
+def parse_basic_info(output: str, sn: str) -> dict | None:
     info = {'sn': sn}
-    clean_output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
+    clean_output = sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
 
     patterns = {
         'interface': r'F/S/P\s*:\s*([^\n]+)',
@@ -121,20 +113,19 @@ def parse_basic_info(output: str, sn) -> dict | None:
     }
 
     for key, pattern in patterns.items():
-        match = re.search(pattern, clean_output, re.IGNORECASE)
+        match = search(pattern, clean_output, IGNORECASE)
         if match:
             value = match.group(1).strip()
             if value not in ['-', '']:
-                if key == 'ip' and re.search(r'\d+\.\d+\.\d+\.\d+', value):
+                if key == 'ip' and search(r'\d+\.\d+\.\d+\.\d+', value):
                     info[key] = value
                 elif key != 'ip':
                     info[key] = value
-
     return info if 'ont_id' in info else None
 
 def parse_optical_info(output) -> dict:
     optical = {}
-    clean_output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
+    clean_output = sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
 
     patterns = {
         'rx_power': r'Rx\s+optical\s+power\(dBm\)\s*:\s*([^\n]+)',
@@ -144,14 +135,14 @@ def parse_optical_info(output) -> dict:
     }
 
     for key, pattern in patterns.items():
-        match = re.search(pattern, clean_output, re.IGNORECASE)
+        match = search(pattern, clean_output, IGNORECASE)
         if match and match.group(1).strip() not in ['-', '']:
             optical[key] = match.group(1).strip()
 
     return optical
 
 def parse_catv_status(output, port_num) -> dict | None:
-    clean_output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
+    clean_output = sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
 
     lines = clean_output.split('\n')
     for line in lines:
@@ -174,43 +165,12 @@ def ping_fast(ip: None | str) -> None | str:
         return None
 
     try:
-        result = subprocess.run(['ping', '-c', '1', '-W', '300', ip], capture_output=True,
+        result = run(['ping', '-c', '1', '-W', '300', ip], capture_output=True,
             text=True, timeout=1.5)
 
         if result.returncode == 0:
-            time_match = re.search(r'time=([0-9.]+)', result.stdout)
+            time_match = search(r'time=([0-9.]+)', result.stdout)
             return f"{time_match.group(1)} ms" if time_match else "OK"
         return None
     except:
         return None
-
-def print_result(info, ping_result, search_time):
-    print(f"\nРЕЗУЛЬТАТ ({search_time:.1f} сек):")
-    print("=" * 45)
-
-    status = info.get('status', 'N/A')
-    ip = info.get('ip', 'N/A').split('/')[0] if info.get('ip') else 'N/A'
-
-    print(f"Статус: {status} | IP: {ip} | Ping: {ping_result}")
-    print(f"Интерфейс: {info.get('interface', 'N/A')} | ID: {info.get('ont_id', 'N/A')}")
-
-    if info.get('rx_power'):
-        rx = info['rx_power']
-        olt_rx = info.get('olt_rx_power', '-')
-        temp = info.get('temperature', '-')
-        volt = info.get('voltage', '-')
-        print(f"RX: {rx} dBm | OLT RX: {olt_rx} dBm | {temp}C | {volt}V")
-
-    if info.get('catv_ports'):
-        catv_info = []
-        for catv_port in info['catv_ports']:
-            status_text = "ON" if catv_port['switch'].lower() == 'on' else "OFF"
-            catv_info.append(f"P{catv_port['port']}:{status_text}")
-        print(f"CATV: {' '.join(catv_info)}")
-
-    if info.get('online_duration'):
-        print(f"Онлайн: {info['online_duration']}")
-
-    print("=" * 45)
-
-search_ont('HWTC195E0EF4')
