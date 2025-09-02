@@ -91,13 +91,16 @@ def get_customer_tasks(id):
 
 def get_tasks_data(ids: list):
     data = get(f'{api}task&action=show&id={",".join(ids)}', verify=False).json()
-    if 'data' in data:
-        if data is None:
-            return []
-    if isinstance(data, list):
-        return data
+    if 'data' not in data:
+        return []
+    data = data['data']
+
     if isinstance(data, dict):
+        keys = list(data.keys())
+        if all(str(k).isdigit() for k in keys):
+            return [data[k] for k in sorted(keys, key=int)]
         return list(data.values())
+
     return [data]
 
 def get_comments(id: int):
