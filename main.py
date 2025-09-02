@@ -18,12 +18,7 @@ olts = get_olts()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://192.168.2.112",
-        "http://192.168.2.112:80",
-        "http://localhost",
-        "http://127.0.0.1"
-    ],
+    allow_origins=['*'],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
