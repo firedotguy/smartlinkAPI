@@ -95,13 +95,10 @@ def get_tasks_data(ids: list):
         return []
     data = data['data']
 
-    if isinstance(data, dict):
-        keys = list(data.keys())
-        if all(str(k).isdigit() for k in keys):
-            return [data[k] for k in sorted(keys, key=int)]
+    if all(str(k).isdigit() for k in data.keys()):
         return list(data.values())
-
     return [data]
+
 
 def get_comments(id: int):
     return get(f'{api}task&action=get_comment&task_id={id}', verify=False).json()['data']
