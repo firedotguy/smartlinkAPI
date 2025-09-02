@@ -92,7 +92,9 @@ def get_customer_tasks(id):
 def get_tasks_data(ids: list):
     data = get(f'{api}task&action=show&id={",".join(ids)}', verify=False).json()
     if 'data' in data:
-        return data['data'].values()
+        if isinstance(data['data'].values()[0], dict):
+            return data['data'].values()
+        return data['data']
     return []
 
 def get_comments(id: int):
