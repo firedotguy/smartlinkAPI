@@ -307,10 +307,13 @@ def get_ont(apikey: str, customer_id: int, sn: str):
         'status': 'OK',
         'customer_id': customer_id,
         'sn': sn,
-        'id': olt_id,
-        'ip': olt['host'],
-        'name': olt['name'],
-        'online': olt['online'],
+        'olt': {
+            'id': olt_id,
+            'ip': olt['host'],
+            'name': olt['name'],
+            'online': olt['online'],
+            'location': olt['location'],
+        },
         'data': search_ont(sn, olt['host'])
     }
 

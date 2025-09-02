@@ -131,7 +131,8 @@ def get_olts():
             'id': olt['id'],
             'name': olt['name'],
             'host': olt['host'],
-            'online': bool(olt['is_online'])
+            'online': bool(olt['is_online']),
+            'location': olt['location']
         } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data'].values()
     ]
 

@@ -1,7 +1,7 @@
 from time import sleep, time
 from select import select
 from subprocess import run
-from re import search, sub, IGNORECASE
+from re import search, sub, fullmatch, IGNORECASE
 
 from paramiko import SSHClient, AutoAddPolicy, Channel
 from config import ssh_user, ssh_password
@@ -17,61 +17,49 @@ def search_ont(sn: str, host: str) -> None | dict[str, str]:
         banner_timeout=2, look_for_keys=False, allow_agent=False)
 
     channel = ssh.invoke_shell()
-    sleep(0.3)
+    sleep(0.2)
     clear_buffer(channel)
     channel.send(bytes("enable\n", 'utf-8'))
-    sleep(0.2)
+    sleep(0.1)
     clear_buffer(channel)
 
     channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-    sleep(1.8)
+    sleep(1.5)
 
-    ont_info = parse_basic_info(read_output(channel), sn)
+    ont_info = parse_basic_info(read_output(channel))
 
     if not ont_info:
         return None
 
     channel.send(bytes("config\n", 'utf-8'))
-    sleep(0.15)
+    sleep(0.1)
     clear_buffer(channel)
 
-    interface_parts = ont_info['interface'].split('/')
-    gpon_interface = f"{interface_parts[0]}/{interface_parts[1]}"
-    port_id = interface_parts[2]
-
-    channel.send(bytes(f"interface gpon {gpon_interface}\n", 'utf-8'))
-    sleep(0.15)
+    channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
+    sleep(0.1)
     clear_buffer(channel)
 
 
-    channel.send(bytes(f"display ont optical-info {port_id} {ont_info['ont_id']}\n", 'utf-8'))
+    channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
     sleep(1.2)
-    optical_output = read_output(channel)
-    optical_info = parse_optical_info(optical_output)
-
-    if optical_info:
-        ont_info.update(optical_info)
+    optical_info = parse_optical_info(read_output(channel))
+    ont_info['optical'] = optical_info
 
     catv_results = []
     for port_num in [1, 2]:
-        channel.send(bytes(f"display ont port attribute {port_id} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
-        sleep(1.3)
-        catv_output = read_output(channel)
-        catv_status = parse_catv_status(catv_output, port_num)
+        channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
+        sleep(1.2)
+        catv = parse_catv_status(read_output(channel))
+        catv_results.append(catv)
 
-        if catv_status:
-            catv_results.append(catv_status)
-
-    if catv_results:
-        ont_info['catv_ports'] = catv_results
+    ont_info['catv'] = catv_results
 
     channel.close()
     ssh.close()
 
-    ip = ont_info.get('ip', '').split('/')[0] if ont_info.get('ip') else None
-    ping_result = ping_fast(ip)
+    ping_result = ping(ont_info['ip'].split('/')[0] if 'ip' in ont_info else None)
 
-    ont_info['ping'] = ping_result
+    ont_info['ping'] = float(ping_result.split(' ')[0]) if ping_result else None
     ont_info['duration'] = time() - start_time
     return ont_info
 
@@ -100,67 +88,60 @@ def read_output(channel: Channel, timeout: int = 30):
 
     return output
 
-def parse_basic_info(output: str, sn: str) -> dict | None:
-    info = {'sn': sn}
-    clean_output = sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
-
-    patterns = {
-        'interface': r'F/S/P\s*:\s*([^\n]+)',
-        'ont_id': r'ONT-ID\s*:\s*([^\n]+)',
-        'status': r'Run\s+state\s*:\s*([^\n]+)',
-        'online_duration': r'ONT\s+online\s+duration\s*:\s*([^\n]+)',
-        'ip': r'ont\s+ip.*?:\s*([0-9./]+)'
+def parse_basic_info(output: str) -> dict | None:
+    data = {}
+    for line in output.replace("---- More ( Press 'Q' to break ) ----\x1b[37D                                     \x1b[37D  ", '').splitlines():
+        if ':' in line:
+            data[line.split(':', 1)[0].strip()] = line.split(':', 1)[1].strip()
+    if 'ONT online duration' in data:
+        uptime = fullmatch(r'^(\d*) day\(s\), (\d*) hour\(s\), (\d*) minute\(s\), (\d*) second\(s\)$', data['ONT online duration'])
+    else:
+        uptime = None
+    if 'ONT-ID' not in data: return None
+    return {
+        'interface': {
+            'name': data['F/S/P'],
+            'fibre': int(data['F/S/P'].split('/')[0]),
+            'service': int(data['F/S/P'].split('/')[1]),
+            'port': int(data['F/S/P'].split('/')[2])
+        },
+        'ont_id': int(data['ONT-ID']),
+        'status': data.get('Run state'),
+        'mem_load': int(data['Memory occupation'].rstrip('%')) if 'Memory occupation' in data else None,
+        'cpu_load': int(data['CPU occupation'].rstrip('%')) if 'CPU occupation' in data else None,
+        'temp': int(data['Temperature'].split('(')[0]) if 'Temperature' in data else 0,
+        'ip': data['ONT IP 0 address/mask'].split('/')[0] if 'ONT IP 0 address/mask' in data else None,
+        'last_down_cause': data.get('Last down cause'),
+        'last_down': data['Last down time'].rstrip('+06:00') if 'Last down time' in data else None,
+        'last_up': data['Last up time'].rstrip('+06:00') if 'Last up time' in data else None,
+        'uptime': {
+            'data': uptime.group(0),
+            'days': int(uptime.group(1)),
+            'hours': int(uptime.group(2)),
+            'minutes': int(uptime.group(3)),
+            'seconds': int(uptime.group(4))
+        } if uptime else None
     }
-
-    for key, pattern in patterns.items():
-        match = search(pattern, clean_output, IGNORECASE)
-        if match:
-            value = match.group(1).strip()
-            if value not in ['-', '']:
-                if key == 'ip' and search(r'\d+\.\d+\.\d+\.\d+', value):
-                    info[key] = value
-                elif key != 'ip':
-                    info[key] = value
-    return info if 'ont_id' in info else None
 
 def parse_optical_info(output) -> dict:
-    optical = {}
-    clean_output = sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
+    data = {}
+    for line in output.splitlines():
+        if ':' in line:
+            data[line.split(':', 1)[0].strip()] = line.split(':', 1)[1].strip()
 
-    patterns = {
-        'rx_power': r'Rx\s+optical\s+power\(dBm\)\s*:\s*([^\n]+)',
-        'olt_rx_power': r'OLT\s+Rx\s+ONT\s+optical\s+power\(dBm\)\s*:\s*([^\n]+)',
-        'temperature': r'Temperature\(C\)\s*:\s*([^\n]+)',
-        'voltage': r'Voltage\(V\)\s*:\s*([^\n]+)'
+    return {
+        'rx': float(data['Rx optical power(dBm)']),
+        'tx': float(data['Tx optical power(dBm)']),
+        'temp': int(data['Temperature(C)']) if 'Temperature(C)' in data else None
     }
 
-    for key, pattern in patterns.items():
-        match = search(pattern, clean_output, IGNORECASE)
-        if match and match.group(1).strip() not in ['-', '']:
-            optical[key] = match.group(1).strip()
+def parse_catv_status(output) -> bool:
+    output = [line.strip() for line in output.splitlines()]
+    line = output[output.index('port-ID  port-type  switch') + 2]
+    data = line.replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').split(' ')
+    return data[3] == 'on'
 
-    return optical
-
-def parse_catv_status(output, port_num) -> dict | None:
-    clean_output = sub(r'\x1b\[[0-9;]*[A-Za-z]|\r', '', output)
-
-    lines = clean_output.split('\n')
-    for line in lines:
-        if 'CATV' in line and ('on' in line or 'off' in line):
-            parts = line.split()
-            if len(parts) >= 4:
-                for i, part in enumerate(parts):
-                    if part.upper() == 'CATV' and i + 1 < len(parts):
-                        switch = parts[i + 1]
-                        frequency = parts[i + 2] if i + 2 < len(parts) else 'all-pass'
-                        return {
-                            'port': port_num,
-                            'switch': switch,
-                            'frequency': frequency
-                        }
-    return None
-
-def ping_fast(ip: None | str) -> None | str:
+def ping(ip: None | str) -> None | str:
     if not ip or ip in ['-', 'N/A', '']:
         return None
 
