@@ -93,8 +93,15 @@ def customer(id: int, apikey: str):
         tasks = []
 
     olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={id}&is_finish_data=1')['data']
-    if 'finish' not in olt and '(' in customer['full_name']:
-        olt = api_call('device', 'get_ont_data', f'id={get_sn(customer['full_name'])}')['data']
+    if isinstance(olt, dict) and olt.get('object_type') != 'switch' and '(' in customer['full_name']:
+        ont = api_call('device', 'get_ont_data', f'id={get_sn(customer["full_name"])}')['data']
+        if isinstance(ont, dict):
+            olt_id = ont.get('device_id')
+        else:
+            olt_id = None
+
+    elif 'finish' not in olt and '(' in customer['full_name']:
+        olt = api_call('device', 'get_ont_data', f'id={get_sn(customer["full_name"])}')['data']
         if isinstance(olt, dict):
             olt_id = olt['device_id']
         else:

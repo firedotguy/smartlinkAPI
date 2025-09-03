@@ -67,7 +67,7 @@ def clear_buffer(channel: Channel):
     if channel.recv_ready():
         channel.recv(32768)
 
-def read_output(channel: Channel, timeout: int = 30):
+def read_output(channel: Channel, timeout: int = 15):
     output = ""
     end_time = time() + timeout * 60
 
@@ -83,8 +83,6 @@ def read_output(channel: Channel, timeout: int = 30):
                 if '#' in data:
                     break
                 sleep(0.01)
-        if end_time < time():
-            break
 
     return output
 
