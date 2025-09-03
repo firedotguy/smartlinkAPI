@@ -103,7 +103,7 @@ def customer(id: int, apikey: str):
         'status': str_status(customer['state_id']),
         'sn': get_sn(customer['full_name']),
         'tasks': tasks,
-        #'onu_level': get_ont_data(get_sn(customer['full_name'])),
+        'onu_level': get_ont_data(get_sn(customer['full_name'])),
         'tariffs': tariff_data,
         'phones': [phone['number'] for phone in customer['phone']],
         'last_activity': customer['date_activity'],
