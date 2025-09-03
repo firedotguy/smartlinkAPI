@@ -20,6 +20,7 @@
 
 ## Запуск
 ```
-pip install -r requirements.txt
-uvicorn main:app --host=0.0.0.0
+./scripts/dev.sh #Linux
+./scripts/dev.ps1 #Windows
+./scripts/prod.sh #Linux (production)
 ```
