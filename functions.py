@@ -2,12 +2,12 @@ def convert(data: str):
     return data.replace('&#047;', '/').replace('&#037;', '%').replace('&#035;', '#')
 
 def parse_agreement(agreement):
-        if agreement:
-            if agreement.isdigit():
-                return int(agreement)
-        return None
+    if agreement:
+        if agreement.isdigit():
+            return int(agreement)
+    return None
 
-def cut_agree(data: str):
+def cut_sn(data: str):
     if data.find('(') != -1:
         return data[:data.find(' (')]
     return data

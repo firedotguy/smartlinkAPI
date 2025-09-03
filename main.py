@@ -26,14 +26,13 @@ app.add_middleware(
 
 
 @app.get('/favicon.ico', include_in_schema=False)
-async def favicon():
+async def favicon() -> FileResponse:
     return FileResponse('favicon.ico')
 
 @app.get('/customer')
 def customer(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
-    print('load customer')
     customer = get_customer_data(id)
     items = get_inventory(id)
     item_names = get_inventory_data(items)
@@ -93,31 +92,40 @@ def customer(id: int, apikey: str):
     else:
         tasks = []
 
-    result = {
+    olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={id}&is_finish_data=1')['data']
+    if 'finish' not in olt and '(' in customer['full_name']:
+        olt = api_call('device', 'get_ont_data', f'id={get_sn(customer['full_name'])}')['data']
+        if isinstance(olt, dict):
+            olt_id = olt['device_id']
+        else:
+            olt_id = None
+    elif '(' not in customer['full_name']:
+        olt_id = None
+    else:
+        olt_id = olt['finish']['object_id']
+
+    return {
         'result': 'OK',
         'id': customer['id'],
-        'api_count': 5, #+1,
+        'olt_id': olt_id,
         'balance': customer['balance'],
-        'name': cut_agree(customer['full_name']),
+        'name': cut_sn(customer['full_name']),
         'agreement': parse_agreement(customer['agreement'][0]['number']),
         'status': str_status(customer['state_id']),
         'sn': get_sn(customer['full_name']),
         'tasks': tasks,
-        'onu_level': get_ont_data(get_sn(customer['full_name'])),
+        # 'onu_level': get_ont_data(get_sn(customer['full_name'])),
         'tariffs': tariff_data,
         'phones': [phone['number'] for phone in customer['phone']],
         'last_activity': customer['date_activity'],
         'inventory': inventory,
         'house_id': customer['address'][0]['house_id'],
-    }
-    if geodata:
-        result['geodata'] = geodata
-    if 'group' in customer:
-        result['group'] = {
+        'geodata': geodata,
+        'group': {
             'id': list(customer['group'].values())[0]['id'],
             'name': customer_groups[list(customer['group'].values())[0]['id']]
         }
-    return result
+    }
 
 
 @app.get('/attachs')
@@ -133,7 +141,6 @@ def attachs(id: int, apikey: str):
             t_attachs.update(task_attachs)
     return {
         'result': 'OK',
-        'api_count': 2 + len(c_attachs) + len(tasks) + len(t_attachs),
         'customer': [{
             'id': attach['id'],
             'url': get_attach_data(attach['id']),
@@ -157,7 +164,6 @@ def comments(id: int, apikey: str):
     comments = get_comments(id)
     return {
         'status': 'OK',
-        'api_count': 1,
         'id': id,
         'comments': [{
             'id': comment['comment_id'],
@@ -177,7 +183,7 @@ def box(id: int, apikey: str):
         neighbours_data = get_customers_data(list(map(str, neighbours)))
         neighbours = [{
             'id': neighbour['id'],
-            'name': cut_agree(neighbour['full_name']),
+            'name': cut_sn(neighbour['full_name']),
             'last_activity': neighbour.get('date_activity'),
             'status': str_status(neighbour['state_id']),
             'sn': get_sn(neighbour['full_name']),
@@ -185,17 +191,15 @@ def box(id: int, apikey: str):
         } for neighbour in neighbours_data]
         return {
             'result': 'OK',
-            'api_count': 3 + len(neighbours),
             'id': id,
             'building_id': house['building_id'],
             'name': house['full_name'],
             'customers': neighbours
         }
-    return {
+    return JSONResponse({
         'status': 'fail',
-        'api_count': 1,
         'detail': 'house not found'
-    }
+    }, status_code=404)
 
 @app.get('/find')
 def find(query: str, apikey: str):
@@ -218,7 +222,6 @@ def find(query: str, apikey: str):
     return {
         'result': 'OK',
         'customers': customer_data,
-        'api_count': 2,
         'search_type': 'agreement' if query.isdigit() else 'name'
     }
 
@@ -228,7 +231,6 @@ def login(login: str, password: str, apikey: str):
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     return {
         'result': 'OK',
-        'api_count': 2,
         'correct': check_login(login, password),
         'id': get_employee_id(login)
     }
@@ -239,7 +241,6 @@ def additional_data(apikey: str):
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     return {
         'result': 'OK',
-        'api_count': 0,
         'data': additional_datas
     }
 
@@ -249,7 +250,6 @@ def divisions(apikey: str):
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     return {
         'result': 'OK',
-        'api_count': 1,
         'data': [{
             'id': i['id'],
             'parent': i['parent_id'],
@@ -273,7 +273,6 @@ def create_task(customer_id: int, author_id: int, reason: str, apikey: str, phon
         add_comment(id, description)
     return {
         'status': 'OK',
-        'api_count': 2 + bool(description),
         'id': id,
         'customer_id': customer_id,
         'author_id': author_id,
@@ -287,20 +286,15 @@ def create_task(customer_id: int, author_id: int, reason: str, apikey: str, phon
     }
 
 @app.get('/ont')
-def get_ont(apikey: str, customer_id: int, sn: str):
+def get_ont(apikey: str, olt_id: int, sn: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
-    olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={customer_id}&is_finish_data=1')['data']
-    if 'finish' not in olt:
-        return JSONResponse({'status': 'fail', 'detail': 'no olt object'}, status_code=404)
-    olt_id = olt['finish']['object_id']
     olt = [olt for olt in olts if olt['id'] == olt_id]
     if not olt:
         return JSONResponse({'status': 'fail', 'detail': 'wrong olt id'}, status_code=404)
     olt = olt[0]
     return {
         'status': 'OK',
-        'customer_id': customer_id,
         'sn': sn,
         'olt': {
             'id': olt_id,
@@ -322,7 +316,7 @@ def customer_name(apikey: str, id: int):
     return {
         'status': 'success',
         'id': id,
-        'name': cut_agree(data['data']['full_name'])
+        'name': cut_sn(data['data']['full_name'])
     }
 
 @app.get('/employee/name')
@@ -361,7 +355,7 @@ def neomobile_login(apikey: str, phone: str, agreement: str):
     return {
         'status': 'success',
         'id': id,
-        'name': cut_agree(data['full_name']),
+        'name': cut_sn(data['full_name']),
         'phone': phone,
         'agreement': agreement,
         'balance': data['balance'],
@@ -388,7 +382,7 @@ def neomobile_customer(apikey: str, id: int):
     return {
         'status': 'success',
         'id': data['id'],
-        'name': cut_agree(data['full_name']),
+        'name': cut_sn(data['full_name']),
         'phones': [phone['number'] for phone in data['phone']],
         'agreement': data['agreement'][0]['number'],
         'balance': data['balance'],
