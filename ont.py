@@ -8,60 +8,65 @@ from config import ssh_user, ssh_password
 
 __version__ = 'v.13.0'
 
-def search_ont(sn: str, host: str) -> None | dict[str, str]:
+def search_ont(sn: str, host: str) -> None | dict:
     start_time = time()
+    ont_info: dict | None = {}
+    try:
+        ssh = SSHClient()
+        ssh.set_missing_host_key_policy(AutoAddPolicy())
+        ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
+            banner_timeout=2, look_for_keys=False, allow_agent=False)
 
-    ssh = SSHClient()
-    ssh.set_missing_host_key_policy(AutoAddPolicy())
-    ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
-        banner_timeout=2, look_for_keys=False, allow_agent=False)
+        channel = ssh.invoke_shell()
+        sleep(0.2)
+        clear_buffer(channel)
+        channel.send(bytes("enable\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
 
-    channel = ssh.invoke_shell()
-    sleep(0.2)
-    clear_buffer(channel)
-    channel.send(bytes("enable\n", 'utf-8'))
-    sleep(0.1)
-    clear_buffer(channel)
+        channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
+        sleep(1.5)
 
-    channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-    sleep(1.5)
+        ont_info = parse_basic_info(read_output(channel))
 
-    ont_info = parse_basic_info(read_output(channel))
+        if not ont_info:
+            return
 
-    if not ont_info:
-        return None
+        channel.send(bytes("config\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
 
-    channel.send(bytes("config\n", 'utf-8'))
-    sleep(0.1)
-    clear_buffer(channel)
-
-    channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
-    sleep(0.1)
-    clear_buffer(channel)
+        channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
 
 
-    channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
-    sleep(1.2)
-    optical_info = parse_optical_info(read_output(channel))
-    ont_info['optical'] = optical_info
-
-    catv_results = []
-    for port_num in [1, 2]:
-        channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
+        channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
         sleep(1.2)
-        catv = parse_catv_status(read_output(channel))
-        catv_results.append(catv)
+        optical_info = parse_optical_info(read_output(channel))
+        ont_info['optical'] = optical_info
 
-    ont_info['catv'] = catv_results
+        catv_results = []
+        for port_num in [1, 2]:
+            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
+            sleep(1.2)
+            catv = parse_catv_status(read_output(channel))
+            catv_results.append(catv)
 
-    channel.close()
-    ssh.close()
+        ont_info['catv'] = catv_results
 
-    ping_result = ping(ont_info['ip'].split('/')[0] if 'ip' in ont_info else None)
+        channel.close()
+        ssh.close()
 
-    ont_info['ping'] = float(ping_result.split(' ')[0]) if ping_result else None
-    ont_info['duration'] = time() - start_time
-    return ont_info
+        ping_result = ping(ont_info['ip'].split('/')[0] if 'ip' in ont_info else None)
+
+        ont_info['ping'] = float(ping_result.split(' ')[0]) if ping_result else None
+    except Exception as e:
+        ont_info = {'status': 'offline', 'error': str(e)}
+    finally:
+        assert ont_info is not None #cant assert, just for pylance
+        ont_info['duration'] = time() - start_time
+        return ont_info
 
 def clear_buffer(channel: Channel):
     if channel.recv_ready():
