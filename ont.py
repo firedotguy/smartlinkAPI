@@ -65,6 +65,7 @@ def search_ont(sn: str, host: str) -> None | dict:
     except Exception as e:
         ont_info.update({'status': 'offline', 'error': str(e)})
     finally:
+        if ont_info == {}: return
         ont_info['duration'] = time() - start_time
         return ont_info
 
