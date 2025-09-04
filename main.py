@@ -93,7 +93,7 @@ def customer(id: int, apikey: str):
         tasks = []
 
     olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={id}&is_finish_data=1')['data']
-    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' and '(' in customer['full_name']:
+    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' and get_sn(customer['full_name']) is not None:
         ont = api_call('device', 'get_ont_data', f'id={get_sn(customer["full_name"])}')['data']
         if isinstance(ont, dict):
             olt_id = ont.get('device_id')
