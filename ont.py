@@ -152,9 +152,9 @@ def parse_optical_info(output) -> dict:
             data[line.split(':', 1)[0].strip()] = line.split(':', 1)[1].strip()
 
     return {
-        'rx': _try_float(data.get('Rx optical power(dBm)')),
-        'tx': _try_float(data.get('Tx optical power(dBm)')),
-        'temp': _try_int(data.get('Temperature(C)'))
+        'rx': _parse_float(data.get('Rx optical power(dBm)')),
+        'tx': _parse_float(data.get('Tx optical power(dBm)')),
+        'temp': _parse_int(data.get('Temperature(C)'))
     }
 
 def parse_catv_status(output: str) -> bool:
