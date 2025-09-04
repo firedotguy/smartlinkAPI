@@ -53,8 +53,8 @@ stop() {
 status() {
   echo "Status:"
   ps aux | grep -E "uvicorn .*${APP_MODULE}" | grep -v grep || echo "No running process found."
-  echo "Last 50 log lines:"
-  tail -n 50 "${LOGFILE}" || true
+  echo "Last 200 log lines:"
+  tail -n 200 "${LOGFILE}" || true
 }
 
 case "${1:-}" in
