@@ -59,7 +59,7 @@ def search_ont(sn: str, host: str) -> None | dict:
         channel.close()
         ssh.close()
 
-        ping_result = ping(ont_info['ip'].split('/')[0] if 'ip' in ont_info else None)
+        ping_result = ping(ont_info['ip'].split('/')[0] if ont_info.get('ip') else None)
 
         ont_info['ping'] = float(ping_result.split(' ')[0]) if ping_result else None
     except Exception as e:
