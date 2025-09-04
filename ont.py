@@ -10,7 +10,7 @@ __version__ = 'v.13.0'
 
 def search_ont(sn: str, host: str) -> None | dict:
     start_time = time()
-    ont_info: dict | None = {}
+    ont_info: dict = {}
     try:
         ssh = SSHClient()
         ssh.set_missing_host_key_policy(AutoAddPolicy())
@@ -27,10 +27,11 @@ def search_ont(sn: str, host: str) -> None | dict:
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
         sleep(1.5)
 
-        ont_info = parse_basic_info(read_output(channel))
+        parsed_ont_info = parse_basic_info(read_output(channel))
 
-        if not ont_info:
+        if not parsed_ont_info:
             return
+        ont_info = parsed_ont_info
 
         channel.send(bytes("config\n", 'utf-8'))
         sleep(0.1)
@@ -62,9 +63,8 @@ def search_ont(sn: str, host: str) -> None | dict:
 
         ont_info['ping'] = float(ping_result.split(' ')[0]) if ping_result else None
     except Exception as e:
-        ont_info = {'status': 'offline', 'error': str(e)}
+        ont_info.update({'status': 'offline', 'error': str(e)})
     finally:
-        assert ont_info is not None #cant assert, just for pylance
         ont_info['duration'] = time() - start_time
         return ont_info
 
