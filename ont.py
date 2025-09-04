@@ -91,20 +91,20 @@ def read_output(channel: Channel, timeout: int = 15):
 
     return output
 
-def _try_int(data: str | None) -> int | None:
+def _parse_int(data: str | None) -> int | None:
     if data is None: return None
     if data == '-': return None
     data = data.replace('(C)', '').replace('%', '').strip()
     if data.isdigit(): return int(data)
     return -1488 #fallback for debug, remove in release
 
-def _try_float(data: str | None) -> float | None:
+def _parse_float(data: str | None) -> float | None:
     if data is None: return None
     if data == '-': return None
     data = data.replace('(C)', '').replace('%', '').strip()
     return float(data)
 
-def _try_str(data: str | None, filter = lambda e: e) -> str | None:
+def _parse_str(data: str | None, filter = lambda e: e) -> str | None:
     if data is None: return None
     if data == '-': return None
     data = filter(data)
@@ -127,15 +127,15 @@ def parse_basic_info(output: str) -> dict | None:
             'service': int(data['F/S/P'].split('/')[1]),
             'port': int(data['F/S/P'].split('/')[2])
         },
-        'ont_id': _try_int(data.get('ONT-ID')),
+        'ont_id': _parse_int(data.get('ONT-ID')),
         'status': data.get('Run state'),
-        'mem_load': _try_int(data.get('Memory occupation')),
-        'cpu_load': _try_int(data.get('CPU occupation')),
-        'temp': _try_int(data['Temperature']),
-        'ip': _try_str(data.get('ONT IP 0 address/mask'), lambda e: e.split('/')[0]),
-        'last_down_cause': _try_str(data.get('Last down cause')),
-        'last_down': _try_str(data.get('Last down time'), lambda e: e.rstrip('+06:00')),
-        'last_up': _try_str(data.get('Last up time'), lambda e: e.rstrip('+06:00')),
+        'mem_load': _parse_int(data.get('Memory occupation')),
+        'cpu_load': _parse_int(data.get('CPU occupation')),
+        'temp': _parse_int(data['Temperature']),
+        'ip': _parse_str(data.get('ONT IP 0 address/mask'), lambda e: e.split('/')[0]),
+        'last_down_cause': _parse_str(data.get('Last down cause')),
+        'last_down': _parse_str(data.get('Last down time'), lambda e: e.rstrip('+06:00')),
+        'last_up': _parse_str(data.get('Last up time'), lambda e: e.rstrip('+06:00')),
         'uptime': {
             'data': uptime.group(0),
             'days': int(uptime.group(1)),
@@ -157,9 +157,10 @@ def parse_optical_info(output) -> dict:
         'temp': _try_int(data.get('Temperature(C)'))
     }
 
-def parse_catv_status(output) -> bool:
-    output = [line.strip() for line in output.splitlines()]
-    line = output[output.index('port-ID  port-type  switch') + 2]
+def parse_catv_status(output: str) -> bool:
+    lines = [line.strip() for line in output.splitlines()]
+    if 'port-ID  port-type  switch' not in lines: return False
+    line = lines[lines.index('port-ID  port-type  switch') + 2]
     data = line.replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').split(' ')
     return data[3] == 'on'
 
@@ -169,11 +170,11 @@ def ping(ip: None | str) -> None | str:
 
     try:
         result = run(['ping', '-c', '1', '-W', '300', ip], capture_output=True,
-            text=True, timeout=1.5)
+            text=True, timeout=1)
 
         if result.returncode == 0:
             time_match = search(r'time=([0-9.]+)', result.stdout)
-            return f"{time_match.group(1)} ms" if time_match else "OK"
+            return f"{time_match.group(1)} ms" if time_match else "-"
         return None
     except:
         return None
