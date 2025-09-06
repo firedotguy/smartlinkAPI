@@ -44,8 +44,9 @@ def search_ont(sn: str, host: str) -> None | dict:
 
         channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
         sleep(1)
-        optical_info = parse_optical_info(read_output(channel))
-        ont_info['optical'] = optical_info
+        if ont_info['status'] != 'offline':
+            optical_info = parse_optical_info(read_output(channel))
+            ont_info['optical'] = optical_info
 
         catv_results = []
         for port_num in [1, 2]:
@@ -94,8 +95,8 @@ def read_output(channel: Channel):
                     break
                 sleep(0.05)
         else:
-            # if no data more than 2 seconds
-            if time() - last_data_time > 2:
+            # if no data more than 5 seconds
+            if time() - last_data_time > 5:
                 break
 
     return output
@@ -120,6 +121,8 @@ def _parse_str(data: str | None, filter = lambda e: e) -> str | None:
     return data
 
 def parse_basic_info(output: str) -> dict | None:
+    if 'The required ONT does not exist' in output:
+        return {'error': 'ONT не найден'}
     data = {}
     for line in output.replace("---- More ( Press 'Q' to break ) ----\x1b[37D                                     \x1b[37D  ", '').splitlines():
         if ':' in line:
@@ -137,7 +140,7 @@ def parse_basic_info(output: str) -> dict | None:
             'port': int(data['F/S/P'].split('/')[2])
         },
         'ont_id': _parse_int(data.get('ONT-ID')),
-        'status': data.get('Run state'),
+        'status': data.get('Run state', 'unknown'),
         'mem_load': _parse_int(data.get('Memory occupation')),
         'cpu_load': _parse_int(data.get('CPU occupation')),
         'temp': _parse_int(data['Temperature']),
