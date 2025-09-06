@@ -15,17 +15,17 @@ def search_ont(sn: str, host: str) -> None | dict:
         ssh = SSHClient()
         ssh.set_missing_host_key_policy(AutoAddPolicy())
         ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
-            banner_timeout=2, look_for_keys=False, allow_agent=False)
+            banner_timeout=3, look_for_keys=False, allow_agent=False)
 
         channel = ssh.invoke_shell()
-        sleep(0.2)
+        sleep(0.3)
         clear_buffer(channel)
         channel.send(bytes("enable\n", 'utf-8'))
         sleep(0.1)
         clear_buffer(channel)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        sleep(1.5)
+        sleep(1)
 
         parsed_ont_info = parse_basic_info(read_output(channel))
 
@@ -43,14 +43,14 @@ def search_ont(sn: str, host: str) -> None | dict:
 
 
         channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
-        sleep(1.2)
+        sleep(1)
         optical_info = parse_optical_info(read_output(channel))
         ont_info['optical'] = optical_info
 
         catv_results = []
         for port_num in [1, 2]:
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
-            sleep(1.2)
+            sleep(1)
             catv = parse_catv_status(read_output(channel))
             catv_results.append(catv)
 
@@ -73,22 +73,30 @@ def clear_buffer(channel: Channel):
     if channel.recv_ready():
         channel.recv(32768)
 
-def read_output(channel: Channel, timeout: int = 15):
+def read_output(channel: Channel):
     output = ""
-    end_time = time() + timeout * 60
+    last_data_time = time()
 
-    while time() < end_time:
+    while True:
         ready, _, _ = select([channel], [], [], 0.05)
         if ready:
             data = channel.recv(32768).decode('utf-8', errors='ignore')
             if data:
                 output += data
-
+                last_data_time = time()
+                # pagination
                 if "---- More ( Press 'Q' to break ) ----" in data:
                     channel.send(bytes(" ", 'utf-8'))
-                if '#' in data:
+                    continue
+
+                # command completed ("user#" input in data)
+                if data.strip().endswith('#'):
                     break
-                sleep(0.01)
+                sleep(0.05)
+        else:
+            # if no data more than 2 seconds
+            if time() - last_data_time > 2:
+                break
 
     return output
 

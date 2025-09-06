@@ -83,7 +83,7 @@ def customer(id: int, apikey: str):
                 tasks.append({
                     'id': task['id'],
                     'customer_id': task['customer'][0],
-                    'employee_id': list(task['staff']['employee'].values())[0] if 'staff' in task else None,
+                    'employee_id': list(task['staff']['employee'].values())[0] if 'staff' in task and 'employee' in task['staff'] else None,
                     'name': task['type']['name'],
                     'status': {'id': task['state']['id'], 'name': task['state']['name'], 'system_id': task['state']['system_role']},
                     'address': task['address']['text'],
@@ -124,7 +124,7 @@ def customer(id: int, apikey: str):
         'group': {
             'id': list(customer['group'].values())[0]['id'],
             'name': customer_groups[list(customer['group'].values())[0]['id']]
-        }
+        } if 'group' in customer else None
     }
 
 
