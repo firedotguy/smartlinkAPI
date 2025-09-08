@@ -1,5 +1,5 @@
 from requests import get
-from functions import *
+from utils import *
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 from config import api_url as api

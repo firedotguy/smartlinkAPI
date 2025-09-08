@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime as dt
 
-from functions import *
+from utils import *
 from api import *
 from ont import search_ont
 from config import api_key as APIKEY
