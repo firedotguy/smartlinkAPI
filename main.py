@@ -300,7 +300,7 @@ def get_ont(apikey: str, olt_id: int, sn: str):
         'data': search_ont(sn, olt['host'])
     }
 
-@app.post('/ont/restart')
+@app.get('/ont/restart')
 
 def restart_ont(apikey: str, id: int, host: str, port: int):
     if APIKEY != apikey:
