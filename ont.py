@@ -86,8 +86,9 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
         clear_buffer(channel)
 
         channel.send(bytes(f"ont reset {interface['port']} {id}\n", 'utf-8'))
-        sleep(0.1)
-        channel.send(bytes('y', 'utf-8')) # confirmation
+        sleep(0.2)
+        channel.send(bytes('y\n', 'utf-8')) # confirmation
+        sleep(3)
 
         channel.close()
         ssh.close()
