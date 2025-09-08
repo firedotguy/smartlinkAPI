@@ -206,9 +206,9 @@ def find(query: str, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     if query.isdigit():
-        customers = find_agreement(query)
+        customers = api_call('customer', 'get_customer_id', f'data_typer=agreement_number&data_value={query}')
     else:
-        customers = find_names(query)
+        customers = api_call('customer', 'get_customers_id', f'name={query}&is_like=1&limit=10')
 
     customer_data = []
 
@@ -229,10 +229,11 @@ def find(query: str, apikey: str):
 def login(login: str, password: str, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
+    result = 'result' in api_call('employee', 'check_pass', f'login={login}&pass={password}')
     return {
         'result': 'OK',
-        'correct': check_login(login, password),
-        'id': get_employee_id(login)
+        'correct': result,
+        'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}') if result else None
     }
 
 @app.get('/additional_data')
@@ -270,7 +271,7 @@ def create_task(customer_id: int, author_id: int, reason: str, apikey: str, phon
     set_additional_data(17, 29, id, phone)
     set_additional_data(17, 28, id, type)
     if description:
-        add_comment(id, description)
+        api_call('task', 'comment_add', f'id={id}&comment={description}')
     return {
         'status': 'OK',
         'id': id,
