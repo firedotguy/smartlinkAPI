@@ -8,7 +8,7 @@ from config import ssh_user, ssh_password
 
 __version__ = 'v.13.0'
 
-def connect_ssh(host: str):
+def connect_ssh(host: str) -> tuple[Channel, SSHClient]:
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
@@ -74,10 +74,21 @@ def search_ont(sn: str, host: str) -> None | dict:
         ont_info['duration'] = time() - start_time
         return ont_info
 
-def reset_ont(host: str, id: int, port: int) -> dict:
+def reset_ont(host: str, id: int, interface: dict) -> dict:
     try:
         channel, ssh = connect_ssh(host)
-        channel.send(bytes(f'ont reset {port} {id}', 'utf-8'))
+        channel.send(bytes("config\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
+
+        channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
+
+        channel.send(bytes(f"ont reset {interface['port']} {id}\n", 'utf-8'))
+        sleep(0.1)
+        channel.send(bytes('y', 'utf-8')) # confirmation
+
         channel.close()
         ssh.close()
         return {'status': 'success', 'id': id}

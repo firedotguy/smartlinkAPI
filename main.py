@@ -302,11 +302,11 @@ def get_ont(apikey: str, olt_id: int, sn: str):
 
 @app.get('/ont/restart')
 
-def restart_ont(apikey: str, id: int, host: str, port: int):
+def restart_ont(apikey: str, id: int, host: str, fibre: int, service: int, port: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
 
-    return reset_ont(host, id, port)
+    return reset_ont(host, id, {'fibre': fibre, 'service': service, 'port': port})
 
 @app.get('/customer/name')
 def customer_name(apikey: str, id: int):
