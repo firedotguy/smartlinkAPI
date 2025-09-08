@@ -1,28 +1,32 @@
 from time import sleep, time
 from select import select
 from subprocess import run
-from re import search, sub, fullmatch, IGNORECASE
+from re import search, fullmatch
 
 from paramiko import SSHClient, AutoAddPolicy, Channel
 from config import ssh_user, ssh_password
 
 __version__ = 'v.13.0'
 
+def connect_ssh(host: str):
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+    ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
+        banner_timeout=3, look_for_keys=False, allow_agent=False)
+
+    channel = ssh.invoke_shell()
+    sleep(0.3)
+    clear_buffer(channel)
+    channel.send(bytes("enable\n", 'utf-8'))
+    sleep(0.1)
+    clear_buffer(channel)
+    return channel, ssh
+
 def search_ont(sn: str, host: str) -> None | dict:
     start_time = time()
     ont_info: dict = {}
     try:
-        ssh = SSHClient()
-        ssh.set_missing_host_key_policy(AutoAddPolicy())
-        ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
-            banner_timeout=3, look_for_keys=False, allow_agent=False)
-
-        channel = ssh.invoke_shell()
-        sleep(0.3)
-        clear_buffer(channel)
-        channel.send(bytes("enable\n", 'utf-8'))
-        sleep(0.1)
-        clear_buffer(channel)
+        channel, ssh = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
         sleep(1)
@@ -69,6 +73,16 @@ def search_ont(sn: str, host: str) -> None | dict:
         if ont_info == {}: return
         ont_info['duration'] = time() - start_time
         return ont_info
+
+def reset_ont(host: str, id: int, port: int) -> dict:
+    try:
+        channel, ssh = connect_ssh(host)
+        channel.send(bytes(f'ont reset {port} {id}', 'utf-8'))
+        channel.close()
+        ssh.close()
+        return {'status': 'success', 'id': id}
+    except Exception as e:
+        return {'status': 'fail', 'detail': e}
 
 def clear_buffer(channel: Channel):
     if channel.recv_ready():
