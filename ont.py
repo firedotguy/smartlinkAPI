@@ -6,13 +6,15 @@ from re import search, fullmatch
 from paramiko import SSHClient, AutoAddPolicy, Channel
 from config import ssh_user, ssh_password
 
-__version__ = 'v.13.0'
+CONNECT_TIMEOUT = 5
+AUTH_TIMEOUT = 5
+BANNER_TIMEOUT = 3
 
 def connect_ssh(host: str) -> tuple[Channel, SSHClient]:
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
-    ssh.connect(host, username=ssh_user, password=ssh_password, timeout=5, auth_timeout=5,
-        banner_timeout=3, look_for_keys=False, allow_agent=False)
+    ssh.connect(host, username=ssh_user, password=ssh_password, timeout=CONNECT_TIMEOUT, auth_timeout=AUTH_TIMEOUT,
+        banner_timeout=BANNER_TIMEOUT, look_for_keys=False, allow_agent=False)
 
     channel = ssh.invoke_shell()
     sleep(0.3)
@@ -89,6 +91,9 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
         sleep(0.2)
         channel.send(bytes('y\n', 'utf-8')) # confirmation
         sleep(3)
+        out = read_output(channel)
+        if 'Failure:' in out:
+            return {'status': 'fail', 'detail': out.split('Failure:')[1].split('\n')[0]}
 
         channel.close()
         ssh.close()
@@ -132,7 +137,6 @@ def _parse_int(data: str | None) -> int | None:
     if data == '-': return None
     data = data.replace('(C)', '').replace('%', '').strip()
     if data.isdigit(): return int(data)
-    return -1488 #fallback for debug, remove in release
 
 def _parse_float(data: str | None) -> float | None:
     if data is None: return None
