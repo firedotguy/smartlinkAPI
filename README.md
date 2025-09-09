@@ -22,5 +22,5 @@
 ```
 ./scripts/dev.sh #Linux
 ./scripts/dev.ps1 #Windows
-./scripts/prod.sh #Linux (production)
+./scripts/prod.sh start #Linux (production)
 ```
