@@ -1,13 +1,11 @@
 # SmartLinkViewer API
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![License: BSL v1](https://img.shields.io/badge/License-BSL-1.0-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
 ![FastAPI](https://img.shields.io/badge/Framework-FastAPI-green)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
 Серверная часть системы SmartLink и Neomobile, предоставляющая REST API для взаимодействия с клиентскими данными, ONT (модемами) - в разработке, коробками и вложениями в рамках внутренней системы **Neotelecom**.
-
-> **Частный проект. Использование в сторонних продуктах запрещено.**
 
 
 ##  Возможности
