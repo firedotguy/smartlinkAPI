@@ -35,3 +35,11 @@ def neo_coord(lat: float, lon: float) -> str:
 
 def twogis_coord(lat: float, lon: float) -> str:
     return f'http://2gis.kg/geo/{lon},{lat}'
+
+def parse_customers_list(data: dict) -> list:
+    if 'data' not in data:
+        return []
+    customers = data['data']
+    if list(customers.keys())[0].isdigit():
+        return customers.values()
+    return [customers]

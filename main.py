@@ -209,9 +209,9 @@ def find(query: str, apikey: str):
     if query.isdigit():
         customer = api_call('customer', 'get_customer_id', f'data_typer=agreement_number&data_value={query}')
         if 'Id' in customer:
-            customers = [customer['Id']]
+            customers = [str(customer['Id'])]
     else:
-        customers = api_call('customer', 'get_customers_id', f'name={query}&is_like=1&limit=10')['data']
+        customers = [str(customer) for customer in api_call('customer', 'get_customers_id', f'name={query}&is_like=1&limit=10')['data']]
 
     customer_data = []
 
@@ -219,8 +219,9 @@ def find(query: str, apikey: str):
         customer_data = [{
             'id': customer['id'],
             'name': customer['full_name'][:customer['full_name'].find(' (')],
-            'agreement': parse_agreement(customer['agreement'][0]['number'])
-        } for customer in get_customers_data(customers)]
+            'agreement': parse_agreement(customer['agreement'][0]['number']),
+            'status': str_status(customer['state_id'])
+        } for customer in parse_customers_list(api_call('customer', 'get_data', f'id={",".join(customers)}'))]
 
     return {
         'result': 'OK',
