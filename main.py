@@ -205,10 +205,13 @@ def box(id: int, apikey: str):
 def find(query: str, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
+    customers = []
     if query.isdigit():
-        customers = api_call('customer', 'get_customer_id', f'data_typer=agreement_number&data_value={query}')
+        customer = api_call('customer', 'get_customer_id', f'data_typer=agreement_number&data_value={query}')
+        if 'Id' in customer:
+            customers = [customer['Id']]
     else:
-        customers = api_call('customer', 'get_customers_id', f'name={query}&is_like=1&limit=10')
+        customers = api_call('customer', 'get_customers_id', f'name={query}&is_like=1&limit=10')['data']
 
     customer_data = []
 
