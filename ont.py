@@ -88,7 +88,9 @@ def get_summary(host: str, interface: dict) -> dict:
 
         channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
         sleep(0.2)
-        out = read_output(channel).split('------------------------------------------------------------------------------')
+        out = [line.strip() for line in (read_output(channel)
+               .replace("---- More ( Press 'Q' to break ) ----\x1b[37D                                     \x1b[37D  ", '')
+               .split('------------------------------------------------------------------------------'))]
         if len(out) < 6:
             return {'status': 'fail', 'detail': 'not enough sections'}
         total = fullmatch(r'^In port \d*/\d*/\d*, the total of ONTs are: (\d*), online: (\d*)$', out[1])
