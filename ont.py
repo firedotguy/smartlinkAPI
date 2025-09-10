@@ -9,6 +9,7 @@ from config import ssh_user, ssh_password
 CONNECT_TIMEOUT = 5
 AUTH_TIMEOUT = 5
 BANNER_TIMEOUT = 3
+# sequence: fibre -> service -> port -> ont
 
 def connect_ssh(host: str) -> tuple[Channel, SSHClient]:
     ssh = SSHClient()
@@ -49,7 +50,7 @@ def search_ont(sn: str, host: str) -> None | dict:
 
 
         channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
-        sleep(1)
+        sleep(0.2)
         if ont_info['status'] != 'offline':
             optical_info = parse_optical_info(read_output(channel))
             ont_info['optical'] = optical_info
@@ -57,7 +58,7 @@ def search_ont(sn: str, host: str) -> None | dict:
         catv_results = []
         for port_num in [1, 2]:
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
-            sleep(1)
+            sleep(0.2)
             catv = parse_catv_status(read_output(channel))
             catv_results.append(catv)
 
@@ -75,6 +76,56 @@ def search_ont(sn: str, host: str) -> None | dict:
         if ont_info == {}: return
         ont_info['duration'] = time() - start_time
         return ont_info
+
+
+def get_summary(host: str, interface: dict) -> dict:
+    try:
+        channel, ssh = connect_ssh(host)
+        channel.send(bytes("config\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
+
+        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
+        sleep(0.2)
+        out = read_output(channel).split('------------------------------------------------------------------------------')
+        if len(out) < 6:
+            return {'status': 'fail', 'detail': 'not enough sections'}
+        total = fullmatch(r'^In port \d*/\d*/\d*, the total of ONTs are: (\d*), online: (\d*)$', out[1])
+        assert total is not None, 'total regexp fail'
+        online = total.group(1)
+        offline = total.group(2)
+        onts = []
+        for ont, ont2 in zip(out[3].splitlines(), out[5].splitlines()):
+            match = fullmatch(r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*)$', ont)
+            match2 = fullmatch(r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+).*$', ont2)
+            if match is not None and match2 is not None:
+                onts.append({
+                    'id': match.group(1),
+                    'status': match.group(2),
+                    'uptime': match.group(3),
+                    'downtime': match.group(4),
+                    'cause': match.group(5),
+                    'sn': match2.group(2),
+                    'name': match2.group(3),
+                    'distance': match2.group(4),
+                    'rx': _parse_float(match2.group(5)),
+                    'tx': _parse_float(match2.group(6))
+                })
+
+        channel.close()
+        ssh.close()
+        return {
+            'status': 'success',
+            'online': online,
+            'offline': offline,
+            'onts': onts
+        }
+
+    except Exception as e:
+        return {'status': 'fail', 'detail': e}
+
+
+
 
 def reset_ont(host: str, id: int, interface: dict) -> dict:
     try:
