@@ -97,8 +97,8 @@ def get_summary(host: str, interface: dict) -> dict:
         if total is None:
             print('error summary ont: total regexp fail')
             return {'status': 'fail', 'detail': 'total regexp fail'}
-        online = total.group(1)
-        offline = total.group(2)
+        online = int(total.group(1))
+        offline = int(total.group(2))
         onts = []
         for ont, ont2 in zip(out[3].splitlines(), out[5].splitlines()):
             match = fullmatch(r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$', ont.strip())
