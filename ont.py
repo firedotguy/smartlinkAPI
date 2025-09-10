@@ -146,8 +146,8 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
         sleep(3)
         out = read_output(channel)
         if 'Failure:' in out:
-            print(f'error reset ont: failure: {out.split('Failure:')[1]}')
-            return {'status': 'fail', 'detail': out.split("Failure:")[1].split('\n')[0]}
+            print(f'error reset ont: failure: {out.split("Failure:")[1]}')
+            return {'status': 'fail', 'detail': out.split('Failure:')[1].split('\n')[0]}
 
         channel.close()
         ssh.close()
