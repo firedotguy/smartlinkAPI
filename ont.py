@@ -101,7 +101,7 @@ def get_summary(host: str, interface: dict) -> dict:
         offline = total.group(2)
         onts = []
         for ont, ont2 in zip(out[3].splitlines(), out[5].splitlines()):
-            match = fullmatch(r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*)$', ont)
+            match = fullmatch(r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$', ont)
             match2 = fullmatch(r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+).*$', ont2)
             if match is not None and match2 is not None:
                 onts.append({
