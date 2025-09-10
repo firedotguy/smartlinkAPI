@@ -101,18 +101,18 @@ def get_summary(host: str, interface: dict) -> dict:
         offline = total.group(2)
         onts = []
         for ont, ont2 in zip(out[3].splitlines(), out[5].splitlines()):
-            match = fullmatch(r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$', ont)
-            match2 = fullmatch(r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+).*$', ont2)
+            match = fullmatch(r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$', ont.strip())
+            match2 = fullmatch(r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+).*$', ont2.strip())
             if match is not None and match2 is not None:
                 onts.append({
-                    'id': match.group(1),
+                    'id': _parse_int(match.group(1)),
                     'status': match.group(2),
                     'uptime': match.group(3),
                     'downtime': match.group(4),
                     'cause': match.group(5),
                     'sn': match2.group(2),
                     'name': match2.group(3),
-                    'distance': match2.group(4),
+                    'distance': _parse_int(match2.group(4)),
                     'rx': _parse_float(match2.group(5)),
                     'tx': _parse_float(match2.group(6))
                 })
