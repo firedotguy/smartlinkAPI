@@ -5,7 +5,7 @@ from datetime import datetime as dt
 
 from utils import *
 from api import *
-from ont import search_ont, reset_ont
+from ont import search_ont, reset_ont, get_summary
 from config import api_key as APIKEY
 
 app = FastAPI(title='Smart Connect')
@@ -312,6 +312,13 @@ def restart_ont(apikey: str, id: int, host: str, fibre: int, service: int, port:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
 
     return reset_ont(host, id, {'fibre': fibre, 'service': service, 'port': port})
+
+@app.get('/ont/summary')
+def summary_ont(apikey: str, host: str, fibre: int, service: int, port: int):
+    if APIKEY != apikey:
+        return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
+
+    return get_summary(host, {'fibre': fibre, 'service': service, 'port': port})
 
 @app.get('/customer/name')
 def customer_name(apikey: str, id: int):
