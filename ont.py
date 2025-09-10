@@ -71,6 +71,7 @@ def search_ont(sn: str, host: str) -> None | dict:
 
         ont_info['ping'] = float(ping_result.split(' ')[0]) if ping_result else None
     except Exception as e:
+        print(f'error search ont: {e.__class__.__name__}: {e}')
         ont_info.update({'status': 'offline', 'error': str(e)})
     finally:
         if ont_info == {}: return
@@ -91,7 +92,9 @@ def get_summary(host: str, interface: dict) -> dict:
         if len(out) < 6:
             return {'status': 'fail', 'detail': 'not enough sections'}
         total = fullmatch(r'^In port \d*/\d*/\d*, the total of ONTs are: (\d*), online: (\d*)$', out[1])
-        assert total is not None, 'total regexp fail'
+        if total is None:
+            print('error summary ont: total regexp fail')
+            return {'status': 'fail', 'detail': 'total regexp fail'}
         online = total.group(1)
         offline = total.group(2)
         onts = []
@@ -122,9 +125,8 @@ def get_summary(host: str, interface: dict) -> dict:
         }
 
     except Exception as e:
+        print(f'error summary ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
-
-
 
 
 def reset_ont(host: str, id: int, interface: dict) -> dict:
@@ -144,12 +146,14 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
         sleep(3)
         out = read_output(channel)
         if 'Failure:' in out:
+            print(f'error reset ont: failure: {out.split('Failure:')[1]}')
             return {'status': 'fail', 'detail': out.split('Failure:')[1].split('\n')[0]}
 
         channel.close()
         ssh.close()
         return {'status': 'success', 'id': id}
     except Exception as e:
+        print(f'error reset ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
 
 def clear_buffer(channel: Channel):
