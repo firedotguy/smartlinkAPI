@@ -1,20 +1,54 @@
+from html import unescape
+
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime as dt
 
-from utils import *
-from api import *
+from utils import to_2gis_link, to_neo_link, extract_sn, remove_sn, status_to_str, normalize_items, list_to_str, parse_agreement
+from api import api_call, set_additional_data
 from ont import search_ont, reset_ont, get_summary
 from config import api_key as APIKEY
 
 app = FastAPI(title='Smart Connect')
 
-tariffs = get_tariffs()
-customer_groups = get_customer_groups()
-additional_datas = get_additional_datas()
-tmc_categories = get_tmc_categories()
-olts = get_olts()
+tariffs = {
+    tariff['billing_uuid']: unescape(tariff['name'])
+    for tariff in api_call('tariff', 'get')['data'].values()
+}
+customer_groups = {
+    group['id']: group['name']
+    for group in api_call('customer', 'get_customer_group')['data'].values()
+}
+additional_datas = {
+    str(data['id']): unescape(data['available_value'][0]).split('\n')
+    for data in api_call('additional_data', 'get_list', 'section=17')['data'].values()
+    if 'available_value' in data
+}
+tmc_categories = [
+    {
+        'id': section['id'],
+        'name': section['name'],
+        'type_id': section['type_id'],
+        'parent_id': section['parent_id'] if section['parent_id'] != 0 else None
+    } for section in api_call('inventory', 'get_inventory_section_catalog')['data'].values()
+]
+olts = [
+    {
+        'id': olt['id'],
+        'name': olt['name'],
+        'host': olt['host'],
+        'online': bool(olt['is_online']),
+        'location': unescape(olt['location'])
+    } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data'].values()
+]
+divisions = [
+    {
+        'id': division['id'],
+        'parent_id': division['parent_id'],
+        'name': unescape(division['name'])
+    } for division in api_call('employee', 'get_division_list')['data'].values()
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,11 +71,14 @@ def customer(id: int, apikey: str):
     # if customer is None: return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, 404)
 
     items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}').get('data', []).values()
-    item_names = [{
-        'id': str(i['id']),
-        'name': convert(i['name']),
-        'catalog': i['inventory_section_catalog_id']
-    } for i in api_call('inventory', 'get_inventory_catalog', f'id={','.join([str(i['inventory_type_id']) for i in items])}').values()]
+    item_names = [
+        {
+            'id': str(item['id']),
+            'name': unescape(item['name']),
+            'catalog': item['inventory_section_catalog_id']
+        }
+        for item in api_call('inventory', 'get_inventory_catalog', f'id={list_to_str([str(i['inventory_type_id']) for i in items])}')['data'].values()
+    ]
     inventory = []
     for item in items:
         item_name = item_names[item_names.index([i for i in item_names if i['id'] == str(item['inventory_type_id'])][0])]
@@ -64,18 +101,18 @@ def customer(id: int, apikey: str):
         if '7' in customer['additional_data'].keys():
             geodata['coord'] = list(map(float, customer['additional_data']['7']['value'].split(',')))
         if '42' in customer['additional_data'].keys():
-            geodata['address'] = convert(customer['additional_data']['42']['value'])
+            geodata['address'] = unescape(customer['additional_data']['42']['value'])
         if '6' in customer['additional_data'].keys():
-            geodata['2gis_link'] = convert(customer['additional_data']['6']['value'])
+            geodata['2gis_link'] = unescape(customer['additional_data']['6']['value'])
         else:
             if 'coord' in geodata.keys():
-                geodata['2gis_link'] = twogis_coord(geodata['coord'][0], geodata['coord'][1])
+                geodata['2gis_link'] = to_2gis_link(geodata['coord'][0], geodata['coord'][1])
     if 'coord' in geodata.keys():
-        geodata['neo_link'] = neo_coord(geodata['coord'][0], geodata['coord'][1])
+        geodata['neo_link'] = to_neo_link(geodata['coord'][0], geodata['coord'][1])
 
     tasks_id = api_call('task', 'get_list', f'customer_id={id}')['list'].split(',')
     if tasks_id:
-        tasks_data = get_tasks_data(tasks_id)
+        tasks_data = normalize_items(api_call('task', 'show', f'id={list_to_str(tasks_id)}').get('data', []))
         tasks = []
         for task in tasks_data:
             dates = {}
@@ -99,8 +136,8 @@ def customer(id: int, apikey: str):
         tasks = []
 
     olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={id}&is_finish_data=1')['data']
-    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' and get_sn(customer['full_name']) is not None:
-        ont = api_call('device', 'get_ont_data', f'id={get_sn(customer["full_name"])}')['data']
+    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' and extract_sn(customer['full_name']) is not None:
+        ont = api_call('device', 'get_ont_data', f'id={extract_sn(customer["full_name"])}')['data']
         if isinstance(ont, dict):
             olt_id = ont.get('device_id')
         else:
@@ -115,12 +152,12 @@ def customer(id: int, apikey: str):
         'id': customer['id'],
         'olt_id': olt_id,
         'balance': customer['balance'],
-        'name': cut_sn(customer['full_name']),
+        'name': remove_sn(customer['full_name']),
         'agreement': parse_agreement(customer['agreement'][0]['number']),
-        'status': str_status(customer['state_id']),
-        'sn': get_sn(customer['full_name']),
+        'status': status_to_str(customer['state_id']),
+        'sn': extract_sn(customer['full_name']),
         'tasks': tasks,
-        # 'onu_level': get_ont_data(get_sn(customer['full_name'])),
+        # 'onu_level': get_ont_data(extract_sn(customer['full_name'])),
         'tariffs': tariff_data,
         'phones': [phone['number'] for phone in customer['phone']],
         'last_activity': customer['date_activity'],
@@ -138,25 +175,25 @@ def customer(id: int, apikey: str):
 def attachs(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
-    c_attachs = get_customer_attachs(id)
-    tasks = get_customer_tasks(id)
+    c_attachs = api_call('attach', 'get', f'object_id={id}&object_type=customer')['data']
+    tasks = api_call('task', 'get_list', f'customer_id={id}')['list'].split(',')
     t_attachs = {}
     for task in tasks:
-        task_attachs = get_task_attachs(task)
+        task_attachs = api_call('attach', 'get', f'object_id={id}&object_type=task')['data']
         if isinstance(task_attachs, dict):
             t_attachs.update(task_attachs)
     return {
         'result': 'OK',
         'customer': [{
             'id': attach['id'],
-            'url': get_attach_data(attach['id']),
+            'url': api_call('attach', 'get_file_temporary_link', f'uuid={attach["id"]}'),
             'name': attach['internal_filepath'],
             'extension': attach['internal_filepath'].split('.')[1].lower() if '.' in attach['internal_filepath'] else None,
             'date': attach['date_add']
         } for attach in c_attachs.values()] if c_attachs else [],
         'task': [{
             'id': attach['id'],
-            'url': get_attach_data(attach['id']),
+            'url': api_call('attach', 'get_file_temporary_link', f'uuid={attach["id"]}')['data'],
             'name': attach['internal_filepath'],
             'extension': attach['internal_filepath'].split('.')[1].lower() if '.' in attach['internal_filepath'] else None,
             'date': attach['date_add']
@@ -174,7 +211,7 @@ def comments(id: int, apikey: str):
         'comments': [{
             'id': comment['comment_id'],
             'date': comment['date_add'],
-            'content': comment['text'],
+            'content': unescape(comment['text']),
             'author': comment['employee_id']
         } for comment in comments]
     }
@@ -183,17 +220,23 @@ def comments(id: int, apikey: str):
 def box(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
-    house = api_call('address', 'get_house', f'building_id={id}')
+    def _get_onu_level(name):
+        if extract_sn(name) is None: return
+        res = api_call('device', 'get_ont_data', f'id={extract_sn(name)}')
+        if type(res.get('data')) is not dict: return
+        return res['data'].get('level_onu_rx')
+    house = api_call('address', 'get_house', f'building_id={id}')['data']
     if house:
-        neighbours = api_call('customer', 'get_customers_id', f'house_id={house["building_id"]}')
-        neighbours_data = get_customers_data(list(map(str, neighbours)))
+        house = list(house.values())[0]
+        neighbours = api_call('customer', 'get_customers_id', f'house_id={house["building_id"]}')['data']
+        neighbours_data = normalize_items(api_call('customer', 'get_data', f'id={list_to_str(neighbours)}'))
         neighbours = [{
             'id': neighbour['id'],
-            'name': cut_sn(neighbour['full_name']),
+            'name': remove_sn(neighbour['full_name']),
             'last_activity': neighbour.get('date_activity'),
-            'status': str_status(neighbour['state_id']),
-            'sn': get_sn(neighbour['full_name']),
-            'onu_level': get_ont_data(get_sn(neighbour['full_name']))
+            'status': status_to_str(neighbour['state_id']),
+            'sn': extract_sn(neighbour['full_name']),
+            'onu_level': _get_onu_level(neighbour['full_name'])
         } for neighbour in neighbours_data]
         return {
             'result': 'OK',
@@ -226,8 +269,8 @@ def find(query: str, apikey: str):
             'id': customer['id'],
             'name': customer['full_name'][:customer['full_name'].find(' (')],
             'agreement': parse_agreement(customer['agreement'][0]['number']),
-            'status': str_status(customer['state_id'])
-        } for customer in parse_customers_list(api_call('customer', 'get_data', f'id={",".join(customers)}'))]
+            'status': status_to_str(customer['state_id'])
+        } for customer in normalize_items(api_call('customer', 'get_data', f'id={list_to_str(customers)}'))]
 
     return {
         'result': 'OK',
@@ -256,16 +299,12 @@ def additional_data(apikey: str):
     }
 
 @app.get('/divisions')
-def divisions(apikey: str):
+def api_divisions(apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     return {
         'result': 'OK',
-        'data': [{
-            'id': i['id'],
-            'parent': i['parent_id'],
-            'name': convert(i['name'])
-        } for i in get_divisions()]
+        'data': divisions
     }
 
 @app.post('/task')
@@ -337,7 +376,7 @@ def customer_name(apikey: str, id: int):
     return {
         'status': 'success',
         'id': id,
-        'name': cut_sn(data['data']['full_name'])
+        'name': remove_sn(data['data']['full_name'])
     }
 
 @app.get('/employee/name')
@@ -376,7 +415,7 @@ def neomobile_login(apikey: str, phone: str, agreement: str):
     return {
         'status': 'success',
         'id': id,
-        'name': cut_sn(data['full_name']),
+        'name': remove_sn(data['full_name']),
         'phone': phone,
         'agreement': agreement,
         'balance': data['balance'],
@@ -403,7 +442,7 @@ def neomobile_customer(apikey: str, id: int):
     return {
         'status': 'success',
         'id': data['id'],
-        'name': cut_sn(data['full_name']),
+        'name': remove_sn(data['full_name']),
         'phones': [phone['number'] for phone in data['phone']],
         'agreement': data['agreement'][0]['number'],
         'balance': data['balance'],
@@ -411,7 +450,7 @@ def neomobile_customer(apikey: str, id: int):
         'connected_at': data['date_connect'],
         'created_at': data['date_create'],
         'tariffs': tariff_data,
-        'status': str_status(data['state_id']),
+        'status': status_to_str(data['state_id']),
         'task': None if len(tasks) == 0 else int(tasks[0])
     }
 
@@ -497,7 +536,7 @@ def neomobile_inventory(apikey: str, id: int):
         'data': [
             {
                 'id': inventory['id'],
-                'name': convert([name for name in names if name['id'] == inventory['catalog_id']][0]['name']),
+                'name': unescape([name for name in names if name['id'] == inventory['catalog_id']][0]['name']),
                 'type': {
                     'id': [name for name in names if name['id'] == inventory['catalog_id']][0]['inventory_section_catalog_id'],
                     'name': [category['name'] for category in tmc_categories if category['id'] == [name for name in names if name['id'] == inventory['catalog_id']][0]['inventory_section_catalog_id']][0]

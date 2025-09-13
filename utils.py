@@ -1,26 +1,64 @@
-from html import unescape
+def parse_agreement(agreement: str | None) -> int | None:
+    """
+    Parse agreement string into an integer if it contains only digits.
 
-def convert(data: str) -> str:
-    return unescape(data)
+    Args:
+        agreement (str | None): Agreement value as a string.
 
-def parse_agreement(agreement: str) -> int | None:
+    Returns:
+        int|None: Parsed integer if valid, otherwise None.
+    """
     if agreement:
         if agreement.isdigit():
             return int(agreement)
     return None
 
-def cut_sn(data: str) -> str:
-    if data.find('(') != -1:
-        return data[:data.find(' (')]
+def remove_sn(data: str) -> str:
+    """
+    Extract the name part from a string formatted like 'name (sn)'.
+
+    If parentheses are present, the substring before them is returned.
+    Otherwise, the original string is returned.
+
+    Args:
+        data (str): Input string containing a name and an optional value in parentheses.
+
+    Returns:
+        str: Extracted name without the parentheses part.
+    """
+    if '(' in data:
+        return data.split(' (')[0]
     return data
 
-def get_sn(data: str) -> None | str:
-    if data.endswith('()'): return # if sn is empty
+def extract_sn(data: str) -> None | str:
+    """
+    Extract serial number from a string in the format 'name(sn)'.
+
+    If the string ends with '()', it is treated as empty and None is returned.
+    Otherwise, the substring inside parentheses is returned.
+
+    Args:
+        data (str): Input string containing a name and an optional serial number.
+
+    Returns:
+        str | None: Extracted serial number, or None if not found.
+    """
+    if data.endswith('()'):
+        return # if sn is empty
     if '(' in data:
         return data.split('(')[1].rstrip(')')
 
-def str_status(data: int) -> str:
-    match data:
+def status_to_str(status: int) -> str:
+    """
+    Convert numeric status code to human-readable text.
+
+    Args:
+        status (int): Status code (0 = off, 1 = pause, 2 = active).
+
+    Returns:
+        str: Text description of the status.
+    """
+    match status:
         case 0:
             return 'Отключен'
         case 1:
@@ -30,16 +68,59 @@ def str_status(data: int) -> str:
         case _:
             return 'Неизвестен'
 
-def neo_coord(lat: float, lon: float) -> str:
+def list_to_str(data: list) -> str:
+    """
+    Join a list of strings into a single comma-separated string.
+
+    Args:
+        data (list): List of string elements.
+
+    Returns:
+        str: Comma-separated string.
+    """
+    return ','.join(map(str, data))
+
+def to_neo_link(lat: float, lon: float) -> str:
+    """
+    Build a NeoTelecom map link from latitude and longitude.
+
+    Args:
+        lat (float): Latitude coordinate.
+        lon (float): Longitude coordinate.
+
+    Returns:
+        str: URL to the NeoTelecom map for the given coordinates.
+    """
     return f'https://us.neotelecom.kg/map/show?lat={lat}&lon={lon}&zoom=18&is_show_center_marker=1@{lat},{lon},18z'
 
-def twogis_coord(lat: float, lon: float) -> str:
+def to_2gis_link(lat: float, lon: float) -> str:
+    """
+    Build a 2GIS map link from latitude and longitude.
+
+    Args:
+        lat (float): Latitude coordinate.
+        lon (float): Longitude coordinate.
+
+    Returns:
+        str: URL to the 2GIS map for the given coordinates.
+    """
     return f'http://2gis.kg/geo/{lon},{lat}'
 
-def parse_customers_list(data: dict) -> list:
-    if 'data' not in data:
+def normalize_items(raw: dict) -> list:
+    """Convert 'data' field to a list.
+
+    If 'data' is a dict with digit keys, return its values as a list.
+    Otherwise, return ['data'] wrapped in a list.
+
+    Args:
+        raw (dict): Dictionary that may contain the 'data' field.
+
+    Returns:
+        list: Normalized list of data items.
+    """
+    data = raw.get('data')
+    if data is None:
         return []
-    customers = data['data']
-    if list(customers.keys())[0].isdigit():
-        return customers.values()
-    return [customers]
+    if all([item.isdigit() for item in list(data.keys())]):
+        return data.values()
+    return [data]
