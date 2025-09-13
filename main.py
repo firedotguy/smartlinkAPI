@@ -10,7 +10,7 @@ from api import api_call, set_additional_data
 from ont import search_ont, reset_ont, get_summary
 from config import api_key as APIKEY
 
-app = FastAPI(title='Smart Connect')
+app = FastAPI(title='SmartLinkAPI')
 
 tariffs = {
     tariff['billing_uuid']: unescape(tariff['name'])
