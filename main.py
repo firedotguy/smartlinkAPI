@@ -64,7 +64,7 @@ async def favicon() -> FileResponse:
     return FileResponse('favicon.ico')
 
 @app.get('/customer')
-def customer(id: int, apikey: str):
+def api_get_customer(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, 403)
     customer = api_call('customer', 'get_data', f'id={id}')['data']
@@ -172,7 +172,7 @@ def customer(id: int, apikey: str):
 
 
 @app.get('/attachs')
-def attachs(id: int, apikey: str):
+def api_get_attachs(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     c_attachs = api_call('attach', 'get', f'object_id={id}&object_type=customer')['data']
@@ -200,8 +200,8 @@ def attachs(id: int, apikey: str):
         } for attach in t_attachs.values()],
     }
 
-@app.get('/comments')
-def comments(id: int, apikey: str):
+@app.get('/task/comments')
+def api_get_task_comments(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     comments = api_call('task', 'get_comment', f'id={id}')['data']
@@ -217,7 +217,7 @@ def comments(id: int, apikey: str):
     }
 
 @app.get('/box')
-def box(id: int, apikey: str):
+def api_get_box(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     def _get_onu_level(name):
@@ -250,8 +250,8 @@ def box(id: int, apikey: str):
         'detail': 'house not found'
     }, status_code=404)
 
-@app.get('/find')
-def find(query: str, apikey: str):
+@app.get('/customer/search')
+def api_get_customer_search(query: str, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     customers = []
@@ -278,8 +278,8 @@ def find(query: str, apikey: str):
         'search_type': 'agreement' if query.isdigit() else 'name'
     }
 
-@app.get('/login')
-def login(login: str, password: str, apikey: str):
+@app.get('/employee/login')
+def api_get_employee_login(login: str, password: str, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     result = 'result' in api_call('employee', 'check_pass', f'login={login}&pass={password}')
@@ -290,7 +290,7 @@ def login(login: str, password: str, apikey: str):
     }
 
 @app.get('/additional_data')
-def additional_data(apikey: str):
+def api_get_additional_data(apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     return {
@@ -298,8 +298,8 @@ def additional_data(apikey: str):
         'data': additional_datas
     }
 
-@app.get('/divisions')
-def api_divisions(apikey: str):
+@app.get('/employee/divisions')
+def api_get_employee_divisions(apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     return {
@@ -308,7 +308,7 @@ def api_divisions(apikey: str):
     }
 
 @app.post('/task')
-def create_task(customer_id: int, author_id: int, reason: str, apikey: str, phone: int, type: str,
+def api_post_task(customer_id: int, author_id: int, reason: str, apikey: str, phone: int, type: str,
         box: bool = False, box_id: int | None = None, description: str = '', divisions: str = '[]'):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
@@ -337,7 +337,7 @@ def create_task(customer_id: int, author_id: int, reason: str, apikey: str, phon
     }
 
 @app.get('/ont')
-def get_ont(apikey: str, olt_id: int, sn: str):
+def api_get_ont(apikey: str, olt_id: int, sn: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     olt = [olt for olt in olts if olt['id'] == olt_id]
@@ -351,23 +351,22 @@ def get_ont(apikey: str, olt_id: int, sn: str):
         'data': search_ont(sn, olt['host'])
     }
 
-@app.get('/ont/restart')
-
-def restart_ont(apikey: str, id: int, host: str, fibre: int, service: int, port: int):
+@app.post('/ont/restart')
+def api_post_ont_restart(apikey: str, id: int, host: str, fibre: int, service: int, port: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
 
     return reset_ont(host, id, {'fibre': fibre, 'service': service, 'port': port})
 
 @app.get('/ont/summary')
-def summary_ont(apikey: str, host: str, fibre: int, service: int, port: int):
+def api_get_ont_summary(apikey: str, host: str, fibre: int, service: int, port: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
 
     return get_summary(host, {'fibre': fibre, 'service': service, 'port': port})
 
 @app.get('/customer/name')
-def customer_name(apikey: str, id: int):
+def api_get_customer_name(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     data = api_call('customer', 'get_data', f'id={id}')
@@ -380,7 +379,7 @@ def customer_name(apikey: str, id: int):
     }
 
 @app.get('/employee/name')
-def employee_name(apikey: str, id: int):
+def api_get_employee_name(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     data = api_call('employee', 'get_data', f'id={id}')
@@ -394,7 +393,7 @@ def employee_name(apikey: str, id: int):
 
 
 @app.get('/neomobile/login')
-def neomobile_login(apikey: str, phone: str, agreement: str):
+def neomobile_api_get_login(apikey: str, phone: str, agreement: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     id = api_call('customer', 'get_customer_id', f'data_typer=agreement_number&data_value={agreement}')
@@ -424,7 +423,7 @@ def neomobile_login(apikey: str, phone: str, agreement: str):
     }
 
 @app.get('/neomobile/customer')
-def neomobile_customer(apikey: str, id: int):
+def neomobile_api_get_customer(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     data = api_call('customer', 'get_data', f'id={id}')
@@ -456,7 +455,7 @@ def neomobile_customer(apikey: str, id: int):
 
 
 @app.post('/neomobile/task')
-def neomobile_create_task(apikey: str, customer_id: int, phone: str, reason: str, comment: str):
+def neomobile_api_post_task(apikey: str, customer_id: int, phone: str, reason: str, comment: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     id = api_call('task', 'add', f'work_typer=37&work_datedo={dt.now().strftime("%Y.%m.%d %H:%M:%S")}&customer_id={customer_id}&author_employee_id=184&opis={comment}&deadline_hour=72&employee_id=184&division_id=81')['Id']
@@ -475,7 +474,7 @@ def neomobile_create_task(apikey: str, customer_id: int, phone: str, reason: str
     }
 
 @app.post('/neomobile/task/cancel')
-def neomobile_task_cancel(apikey: str, id: int):
+def neomobile_api_post_task_cancel(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     api_call('task', 'change_state', f'id={id}&state_id=10')
@@ -485,7 +484,7 @@ def neomobile_task_cancel(apikey: str, id: int):
     }
 
 @app.get('/neomobile/task')
-def neomobile_task(apikey: str, id: int):
+def neomobile_api_get_task(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     data = api_call('task', 'show', f'id={id}')
@@ -513,7 +512,7 @@ def neomobile_task(apikey: str, id: int):
     }
 
 @app.post('/neomobile/task/comment')
-def neomobile_comment(apikey: str, id: int, content: str):
+def neomobile_api_get_task_comment(apikey: str, id: int, content: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     data = api_call('task', 'comment_add', f'id={id}&comment={content}&employee_id=184')
@@ -525,7 +524,7 @@ def neomobile_comment(apikey: str, id: int, content: str):
     }
 
 @app.get('/neomobile/inventory')
-def neomobile_inventory(apikey: str, id: int):
+def neomobile_api_get_inventory(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     data = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')['data'].values()
@@ -549,7 +548,7 @@ def neomobile_inventory(apikey: str, id: int):
     }
 
 @app.get('/neomobile/documents')
-def neomobile_documents(apikey: str, id: int):
+def neomobile_api_get_documents(apikey: str, id: int):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     attachs = list(api_call('attach', 'get', f'object_id={id}&object_type=customer')['data'].values())
