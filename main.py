@@ -32,10 +32,16 @@ async def favicon() -> FileResponse:
 @app.get('/customer')
 def customer(id: int, apikey: str):
     if APIKEY != apikey:
-        return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
-    customer = get_customer_data(id)
-    items = get_inventory(id)
-    item_names = get_inventory_data(items)
+        return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, 403)
+    customer = api_call('customer', 'get_data', f'id={id}')['data']
+    # if customer is None: return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, 404)
+
+    items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}').get('data', []).values()
+    item_names = [{
+        'id': str(i['id']),
+        'name': convert(i['name']),
+        'catalog': i['inventory_section_catalog_id']
+    } for i in api_call('inventory', 'get_inventory_catalog', f'id={','.join([str(i['inventory_type_id']) for i in items])}').values()]
     inventory = []
     for item in items:
         item_name = item_names[item_names.index([i for i in item_names if i['id'] == str(item['inventory_type_id'])][0])]
@@ -67,7 +73,7 @@ def customer(id: int, apikey: str):
     if 'coord' in geodata.keys():
         geodata['neo_link'] = neo_coord(geodata['coord'][0], geodata['coord'][1])
 
-    tasks_id = get_customer_tasks(id)
+    tasks_id = api_call('task', 'get_list', f'customer_id={id}')['list'].split(',')
     if tasks_id:
         tasks_data = get_tasks_data(tasks_id)
         tasks = []
@@ -161,7 +167,7 @@ def attachs(id: int, apikey: str):
 def comments(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
-    comments = get_comments(id)
+    comments = api_call('task', 'get_comment', f'id={id}')['data']
     return {
         'status': 'OK',
         'id': id,
@@ -177,9 +183,9 @@ def comments(id: int, apikey: str):
 def box(id: int, apikey: str):
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
-    house = get_house(id)
+    house = api_call('address', 'get_house', f'building_id={id}')
     if house:
-        neighbours = get_neighbours(house['building_id'])
+        neighbours = api_call('customer', 'get_customers_id', f'house_id={house["building_id"]}')
         neighbours_data = get_customers_data(list(map(str, neighbours)))
         neighbours = [{
             'id': neighbour['id'],
@@ -268,9 +274,10 @@ def create_task(customer_id: int, author_id: int, reason: str, apikey: str, phon
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     if box:
-        id = add_box_task(dt.now().strftime('%Y.%m.%d %H:%M:%S'), customer_id, author_id, box_id, description, ','.join(eval(divisions)))
+        id = api_call('task', 'add', f'work_typer=38&work_datedo={dt.now().strftime('%Y.%m.%d %H:%M:%S')}&customer_id={customer_id}&author_employee_id={author_id}&address_id={box_id}&opis={description}{"&division=" + ','.join(eval(divisions)) if ','.join(eval(divisions)) else ""}&deadline_hour=72')['Id']
     else:
-        id = add_task(dt.now().strftime('%Y.%m.%d %H:%M:%S'), customer_id, author_id, description, ','.join(eval(divisions)))
+        id = api_call('task', 'add', f'work_typer=37&work_datedo={dt.now().strftime('%Y.%m.%d %H:%M:%S')}&customer_id={customer_id}&author_employee_id={author_id}&opis={description}{"&division=" + ','.join(eval(divisions)) if ','.join(eval(divisions)) else ""}&deadline_hour=72')['Id']
+
     set_additional_data(17, 33 if box else 30, id, reason)
     set_additional_data(17, 29, id, phone)
     set_additional_data(17, 28, id, type)
@@ -414,7 +421,7 @@ def neomobile_create_task(apikey: str, customer_id: int, phone: str, reason: str
     if APIKEY != apikey:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, status_code=403)
     id = api_call('task', 'add', f'work_typer=37&work_datedo={dt.now().strftime("%Y.%m.%d %H:%M:%S")}&customer_id={customer_id}&author_employee_id=184&opis={comment}&deadline_hour=72&employee_id=184&division_id=81')['Id']
-    set_additional_data(17, 28, id, '000')
+    set_additional_data(17, 28, id, 'Приложение') #TODO: make own appeal type
     set_additional_data(17, 29, id, phone)
     set_additional_data(17, 30, id, reason)
     api_call('task', 'comment_add', f'id={id}&comment={comment}&employee_id=184')

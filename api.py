@@ -107,25 +107,11 @@ def get_additional_datas():
     data = get(f'{api}additional_data&action=get_list&section=17', verify=False).json()['data'].values()
     return {str(i['id']): [convert(j) for j in i['available_value'][0].split('\n')] for i in data if 'available_value' in i}
 
-def get_employee_id(name):
-    data = get(f'{api}employee&action=get_employee_id&data_typer=login&data_value={name}', verify=False).json()
-    if 'id' in data: return data['id']
-
 def get_divisions():
     return get(f'{api}employee&action=get_division_list', verify=False).json()['data'].values()
 
-def add_task(date, customer_id, author_id, description, division=None):
-    return get(f'{api}task&action=add&work_typer=37&work_datedo={date}&customer_id={customer_id}&author_employee_id={author_id}&opis={description}{"&division=" + division if division else ""}&deadline_hour=72', verify=False).json()['Id']
-
-def add_box_task(date, customer_id, author_id, box_id, description, division=None):
-    print(f'{api}task&action=add&work_typer=38&work_datedo={date}&customer_id={customer_id}&author_employee_id={author_id}&address_id={box_id}&opis={description}{"&division=" + division if division else ""}&deadline_hour=72')
-    return get(f'{api}task&action=add&work_typer=38&work_datedo={date}&customer_id={customer_id}&author_employee_id={author_id}&address_id={box_id}&opis={description}{"&division=" + division if division else ""}&deadline_hour=72', verify=False).json()['Id']
-
 def set_additional_data(category, field, id, value):
     get(f'{api}additional_data&action=change_value&cat_id={category}&field_id={field}&object_id={id}&value={value}', verify=False)
-
-def add_comment(id, content):
-    get(f'{api}task&action=comment_add&id={id}&comment={content}', verify=False)
 
 def get_tmc_categories():
     return [{'id': section['id'], 'name': section['name'], 'type_id': section['type_id']} for section in api_call('inventory', 'get_inventory_section_catalog')['data'].values()]
@@ -142,5 +128,5 @@ def get_olts():
     ]
 
 
-def api_call(cat, action, data = {}):
+def api_call(cat, action, data = {}) -> dict:
     return get(f'{api}{cat}&action={action}&{data}', verify=False).json()
