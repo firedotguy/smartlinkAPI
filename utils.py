@@ -1,3 +1,10 @@
+from datetime import datetime as dt
+
+from urllib.parse import urljoin
+
+from config import attach_url
+
+
 def parse_agreement(agreement: str | None) -> int | None:
     """
     Parse agreement string into an integer if it contains only digits.
@@ -80,6 +87,18 @@ def list_to_str(data: list) -> str:
     """
     return ','.join(map(str, data))
 
+def str_to_list(data: str) -> list:
+    """
+    Convert a comma-separated string into a list of trimmed strings.
+
+    Args:
+        data (str): Input string with items separated by commas.
+
+    Returns:
+        list[str]: List of items without surrounding spaces.
+    """
+    return [item.strip() for item in data.split(",") if item.strip()]
+
 def to_neo_link(lat: float, lon: float) -> str:
     """
     Build a NeoTelecom map link from latitude and longitude.
@@ -124,3 +143,24 @@ def normalize_items(raw: dict) -> list:
     if all([item.isdigit() for item in list(data.keys())]):
         return data.values()
     return [data]
+
+def get_attach_url(path: str) -> str:
+    """
+    Build full attachment URL by joining base and relative path.
+
+    Args:
+        path (str): Relative path to the attachment.
+
+    Returns:
+        str: Full URL to the attachment.
+    """
+    return urljoin(attach_url, path)
+
+def get_current_time() -> str:
+    """
+    Get the current local time formatted as 'YYYY.MM.DD HH:MM:SS'.
+
+    Returns:
+        str: Current time string.
+    """
+    return dt.now().strftime("%Y.%m.%d %H:%M:%S")

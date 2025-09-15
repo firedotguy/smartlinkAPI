@@ -79,7 +79,7 @@ def search_ont(sn: str, host: str) -> None | dict:
         return ont_info
 
 
-def get_summary(host: str, interface: dict) -> dict:
+def get_ont_summary(host: str, interface: dict) -> dict:
     try:
         channel, ssh = connect_ssh(host)
         channel.send(bytes("config\n", 'utf-8'))
