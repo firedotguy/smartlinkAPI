@@ -5,7 +5,8 @@ from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 
 from api import api_call
-from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn, parse_agreement, status_to_str
+from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn,\
+    parse_agreement, status_to_str
 
 router = APIRouter(prefix='/customer')
 
@@ -13,11 +14,13 @@ router = APIRouter(prefix='/customer')
 def api_get_customer_search(query: str):
     customers = []
     if query.isdigit():
-        customer = api_call('customer', 'get_customer_id', f'data_typer=agreement_number&data_value={query}')
+        customer = api_call('customer', 'get_customer_id',
+            f'data_typer=agreement_number&data_value={query}')
         if 'Id' in customer:
             customers = [str(customer['Id'])]
     else:
-        customers = list(map(str, api_call('customer', 'get_customers_id', f'name={query}&is_like=1&limit=10')['data']))
+        customers = list(map(str, api_call('customer', 'get_customers_id',
+            f'name={query}&is_like=1&limit=10')['data']))
 
     customer_data = []
     if len(customers) > 0:
@@ -26,7 +29,8 @@ def api_get_customer_search(query: str):
             'name': remove_sn(customer['full_name']),
             'agreement': parse_agreement(customer['agreement'][0]['number']),
             'status': status_to_str(customer['state_id'])
-        } for customer in normalize_items(api_call('customer', 'get_data', f'id={list_to_str(customers)}'))]
+        } for customer in normalize_items(api_call('customer', 'get_data',
+            f'id={list_to_str(customers)}'))]
 
     return {
         'result': 'OK',
@@ -39,7 +43,8 @@ def api_get_customer_search(query: str):
 @router.get('/{id}')
 def api_get_customer(request: Request, id: int):
     customer = api_call('customer', 'get_data', f'id={id}')['data']
-    if customer is None: return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, 404)
+    if customer is None: return JSONResponse({'status': 'fail', 'detail': 'customer not found'},
+        404)
 
     tariffs = [
         {'id': int(tariff['id']), 'name': request.app.state.tariffs[tariff['id']]}
@@ -49,7 +54,8 @@ def api_get_customer(request: Request, id: int):
     geodata = {}
     if 'additional_data' in customer:
         if '7' in customer['additional_data']:
-            geodata['coord'] = list(map(float, customer['additional_data']['7']['value'].split(',')))
+            geodata['coord'] = list(map(float, customer['additional_data']['7']['value']
+                .split(',')))
         if '42' in customer['additional_data']:
             geodata['address'] = unescape(customer['additional_data']['42']['value'])
         if '6' in customer['additional_data']:
@@ -60,8 +66,10 @@ def api_get_customer(request: Request, id: int):
         if '2gis_link' in geodata:
             geodata['2gis_link'] = to_2gis_link(geodata['coord'][0], geodata['coord'][1])
 
-    olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={id}&is_finish_data=1')['data']
-    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' and extract_sn(customer['full_name']) is not None:
+    olt = api_call('commutation', 'get_data',
+        f'object_type=customer&object_id={id}&is_finish_data=1')['data']
+    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' \
+        and extract_sn(customer['full_name']) is not None:
         ont = api_call('device', 'get_ont_data', f'id={extract_sn(customer["full_name"])}')['data']
         if isinstance(ont, dict):
             olt_id = ont.get('device_id')
@@ -75,18 +83,22 @@ def api_get_customer(request: Request, id: int):
 
 
     # INVENTORY
-    items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}').get('data', []).values()
+    items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')\
+        .get('data', []).values()
     item_names = [
         {
             'id': str(item['id']),
             'name': unescape(item['name']),
             'catalog': item['inventory_section_catalog_id']
         }
-        for item in api_call('inventory', 'get_inventory_catalog', f'id={list_to_str([str(i['inventory_type_id']) for i in items])}')['data'].values()
+        for item in api_call('inventory', 'get_inventory_catalog',
+            f'id={list_to_str([str(i['inventory_type_id']) for i in items])}')['data'].values()
     ]
     inventory = []
     for item in items:
-        item_name = item_names[item_names.index([i for i in item_names if i['id'] == str(item['inventory_type_id'])][0])]
+        item_name = item_names[item_names.index([
+            i for i in item_names if i['id'] == str(item['inventory_type_id'])
+        ][0])]
         inventory.append({
             'id': item['id'],
             'catalog_id': item['inventory_type_id'],
@@ -110,13 +122,19 @@ def api_get_customer(request: Request, id: int):
                 dates['update'] = task['date']['update']
             if 'complete' in task['date']:
                 dates['complete'] = task['date']['complete']
-            if task['type']['name'] != 'Обращение абонента' and task['type']['name'] != 'Регистрация звонка':
+            if task['type']['name'] != 'Обращение абонента' and \
+                task['type']['name'] != 'Регистрация звонка':
                 tasks.append({
                     'id': task['id'],
                     'customer_id': task['customer'][0],
-                    'employee_id': list(task['staff']['employee'].values())[0] if 'staff' in task and 'employee' in task['staff'] else None,
+                    'employee_id': list(task['staff']['employee'].values())[0]
+                        if 'staff' in task and 'employee' in task['staff'] else None,
                     'name': task['type']['name'],
-                    'status': {'id': task['state']['id'], 'name': task['state']['name'], 'system_id': task['state']['system_role']},
+                    'status': {
+                        'id': task['state']['id'],
+                        'name': task['state']['name'],
+                        'system_id': task['state']['system_role']
+                    },
                     'address': task['address']['text'],
                     'dates': dates
                 })

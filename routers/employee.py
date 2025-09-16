@@ -12,14 +12,15 @@ def api_get_employee_login(login: str, password: str):
     return {
         'result': 'OK',
         'correct': result,
-        'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}') if result else None
+        'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}')
+            if result else None
     }
 
 @router.get('/employee/name/{id}')
 def api_get_employee_name(id: int):
     data = api_call('employee', 'get_data', f'id={id}')
     if 'data' not in data:
-        return JSONResponse({'status': 'fail', 'detail': 'employee not found'}, status_code=404)
+        return JSONResponse({'status': 'fail', 'detail': 'employee not found'}, 404)
     return {
         'status': 'success',
         'id': id,

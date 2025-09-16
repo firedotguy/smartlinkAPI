@@ -1,8 +1,9 @@
+"""Simple utils like parse agreement or build 2 gis link"""
 from datetime import datetime as dt
 
 from urllib.parse import urljoin
 
-from config import attach_url
+from config import ATTACH_URL
 
 
 def parse_agreement(agreement: str | None) -> int | None:
@@ -110,7 +111,8 @@ def to_neo_link(lat: float, lon: float) -> str:
     Returns:
         str: URL to the NeoTelecom map for the given coordinates.
     """
-    return f'https://us.neotelecom.kg/map/show?lat={lat}&lon={lon}&zoom=18&is_show_center_marker=1@{lat},{lon},18z'
+    return f'https://us.neotelecom.kg/map/show?lat={lat}&lon={lon}&zoom=18&is_show_center_marker=1\
+@{lat},{lon},18z'
 
 def to_2gis_link(lat: float, lon: float) -> str:
     """
@@ -154,7 +156,7 @@ def get_attach_url(path: str) -> str:
     Returns:
         str: Full URL to the attachment.
     """
-    return urljoin(attach_url, path)
+    return urljoin(ATTACH_URL, path)
 
 def get_current_time() -> str:
     """

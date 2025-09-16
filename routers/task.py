@@ -1,17 +1,15 @@
 from html import unescape
 
 from fastapi import APIRouter
-from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 
 from api import api_call, set_additional_data
-from utils import get_current_time, str_to_list, list_to_str, normalize_items
+from utils import get_current_time, str_to_list, list_to_str
 
 router = APIRouter(prefix='/task')
 
 @router.get('/{id}')
 def api_get_task(id: int):
-    # print(api_call('task', 'show', f'id={id}'))
     task = api_call('task', 'show', f'id={id}').get('data')
     if task is None:
         return JSONResponse({'status': 'fail', 'detail': 'task not found'})
@@ -70,9 +68,15 @@ def api_post_task(customer_id: int, author_id: int, reason: str, phone: int, typ
         box: bool = False, box_id: int | None = None, description: str = '', divisions: str = ''):
     list_divisions = str_to_list(divisions)
     if box:
-        id = api_call('task', 'add', f'work_typer=38&work_datedo={get_current_time()}&customer_id={customer_id}&author_employee_id={author_id}&address_id={box_id}&opis={description}{"&division=" + list_to_str(list_divisions) if list_to_str(list_divisions) else ""}&deadline_hour=72')['Id']
+        id = api_call('task', 'add', f'work_typer=38&work_datedo={get_current_time()}\
+&customer_id={customer_id}&author_employee_id={author_id}&address_id={box_id}&opis={description}\
+{"&division=" + list_to_str(list_divisions) if list_to_str(list_divisions) else ""}\
+&deadline_hour=72')['Id']
     else:
-        id = api_call('task', 'add', f'work_typer=37&work_datedo={get_current_time()}&customer_id={customer_id}&author_employee_id={author_id}&opis={description}{"&division=" + list_to_str(list_divisions) if list_to_str(list_divisions) else ""}&deadline_hour=72')['Id']
+        id = api_call('task', 'add', f'work_typer=37&work_datedo={get_current_time()}\
+&customer_id={customer_id}&author_employee_id={author_id}&opis={description}\
+{"&division=" + list_to_str(list_divisions) if list_to_str(list_divisions) else ""}\
+&deadline_hour=72')['Id']
 
     set_additional_data(17, 33 if box else 30, id, reason)
     set_additional_data(17, 29, id, phone)

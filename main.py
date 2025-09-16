@@ -3,17 +3,17 @@ from html import unescape
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime as dt
+from fastapi.requests import Request
 
-import routers.addata as addata
-import routers.box as box
-import routers.customer as customer
-import routers.employee as employee
-import routers.neomobile as neomobile
-import routers.ont as ont
-import routers.task as task
+from routers import addata
+from routers import box
+from routers import customer
+from routers import employee
+from routers import neomobile
+from routers import ont
+from routers import task
 from api import api_call
-from config import api_key as APIKEY
+from config import API_KEY as APIKEY
 
 app = FastAPI(title='SmartLinkAPI')
 
@@ -41,11 +41,12 @@ app.state.tmc_categories = [
 app.state.olts = [
     {
         'id': olt['id'],
-        'name': olt['name'],
+        'device': olt['device'],
         'host': olt['host'],
         'online': bool(olt['is_online']),
         'location': unescape(olt['location'])
-    } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data'].values()
+    } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data']
+        .values()
 ]
 app.state.divisions = [
     {
@@ -72,6 +73,14 @@ app.include_router(ont.router)
 app.include_router(task.router)
 
 
+@app.middleware('http')
+async def check_api_key(request: Request, call_next):
+    """API middleware for validate APIKEY"""
+    if request.url != '/favicon.ico' and request.query_params.get('apikey') != APIKEY:
+        return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, 401)
+    return await call_next(request)
+
 @app.get('/favicon.ico', include_in_schema=False)
-async def favicon() -> FileResponse:
+def favicon() -> FileResponse:
+    """Get favicon"""
     return FileResponse('favicon.ico')

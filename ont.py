@@ -1,21 +1,36 @@
+"""Module for actions with SSH OLT"""
 from time import sleep, time
 from select import select
 from subprocess import run
 from re import search, fullmatch
 
 from paramiko import SSHClient, AutoAddPolicy, Channel
-from config import ssh_user, ssh_password
+from config import SSH_USER, SSH_PASSWORD
 
 CONNECT_TIMEOUT = 5
 AUTH_TIMEOUT = 5
 BANNER_TIMEOUT = 3
+
+PAGINATION = "---- More ( Press 'Q' to break ) ----"
+PAGINATION_WITH_SPACES = "---- More ( Press 'Q' to break ) ----\x1b[37D                                   \
+\x1b[37D  "
+DIV_IDER = '-' * 78
+RE_ONT_SUMMARY_TOTAL = r'^In port \d*/\d*/\d*, the total of ONTs are: (\d*), online: (\d*)$'
+RE_ONT_SUMMARY_DATA1 = r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\
+\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$'
+RE_ONT_SUMMARY_DATA2 = r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+)\
+.*$'
+RE_ONT_SEARCH_ONLINE = r'^(\d*) day\(s\), (\d*) hour\(s\), (\d*) minute\(s\), (\d*) second\(s\)$'
+
 # sequence: fibre -> service -> port -> ont
 
 def connect_ssh(host: str) -> tuple[Channel, SSHClient]:
+    """Connect to SSH client using paramiko"""
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
-    ssh.connect(host, username=ssh_user, password=ssh_password, timeout=CONNECT_TIMEOUT, auth_timeout=AUTH_TIMEOUT,
-        banner_timeout=BANNER_TIMEOUT, look_for_keys=False, allow_agent=False)
+    ssh.connect(host, username=SSH_USER, password=SSH_PASSWORD, timeout=CONNECT_TIMEOUT,
+        auth_timeout=AUTH_TIMEOUT, banner_timeout=BANNER_TIMEOUT, look_for_keys=False,
+        allow_agent=False)
 
     channel = ssh.invoke_shell()
     sleep(0.3)
@@ -26,6 +41,7 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient]:
     return channel, ssh
 
 def search_ont(sn: str, host: str) -> None | dict:
+    """Search ONT by serial number and return its basic, optical and catv data"""
     start_time = time()
     ont_info: dict = {}
     try:
@@ -44,12 +60,14 @@ def search_ont(sn: str, host: str) -> None | dict:
         sleep(0.1)
         clear_buffer(channel)
 
-        channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
+        channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/\
+{ont_info['interface']['service']}\n", 'utf-8'))
         sleep(0.1)
         clear_buffer(channel)
 
 
-        channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
+        channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} \
+{ont_info['ont__id']}\n", 'utf-8'))
         sleep(0.2)
         if ont_info['status'] != 'offline':
             optical_info = parse_optical_info(read_output(channel))
@@ -57,7 +75,8 @@ def search_ont(sn: str, host: str) -> None | dict:
 
         catv_results = []
         for port_num in [1, 2]:
-            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
+            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} \
+{ont_info['ont__id']} catv {port_num}\n", 'utf-8'))
             sleep(0.2)
             catv = parse_catv_status(read_output(channel))
             catv_results.append(catv)
@@ -69,7 +88,7 @@ def search_ont(sn: str, host: str) -> None | dict:
 
         ping_result = ping(ont_info['ip'].split('/')[0] if ont_info.get('ip') else None)
 
-        ont_info['ping'] = float(ping_result.split(' ')[0]) if ping_result else None
+        ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
     except Exception as e:
         print(f'error search ont: {e.__class__.__name__}: {e}')
         ont_info.update({'status': 'offline', 'error': str(e)})
@@ -80,20 +99,22 @@ def search_ont(sn: str, host: str) -> None | dict:
 
 
 def get_ont_summary(host: str, interface: dict) -> dict:
+    """get all onts from port"""
     try:
         channel, ssh = connect_ssh(host)
         channel.send(bytes("config\n", 'utf-8'))
         sleep(0.1)
         clear_buffer(channel)
 
-        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
+        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}\
+/{interface['port']}\n", 'utf-8'))
         sleep(0.2)
         out = [line.strip() for line in (read_output(channel)
-               .replace("---- More ( Press 'Q' to break ) ----\x1b[37D                                     \x1b[37D  ", '')
-               .split('------------------------------------------------------------------------------'))]
+               .replace(PAGINATION_WITH_SPACES, '')
+               .split(DIV_IDER))]
         if len(out) < 6:
             return {'status': 'fail', 'detail': 'not enough sections'}
-        total = fullmatch(r'^In port \d*/\d*/\d*, the total of ONTs are: (\d*), online: (\d*)$', out[1])
+        total = fullmatch(RE_ONT_SUMMARY_TOTAL, out[1])
         if total is None:
             print('error summary ont: total regexp fail')
             return {'status': 'fail', 'detail': 'total regexp fail'}
@@ -101,11 +122,11 @@ def get_ont_summary(host: str, interface: dict) -> dict:
         offline = int(total.group(2))
         onts = []
         for ont, ont2 in zip(out[3].splitlines(), out[5].splitlines()):
-            match = fullmatch(r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$', ont.strip())
-            match2 = fullmatch(r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+).*$', ont2.strip())
+            match = fullmatch(RE_ONT_SUMMARY_DATA1, ont.strip())
+            match2 = fullmatch(RE_ONT_SUMMARY_DATA2, ont2.strip())
             if match is not None and match2 is not None:
                 onts.append({
-                    'id': _parse_int(match.group(1)),
+                    '_id': _parse_int(match.group(1)),
                     'status': match.group(2),
                     'uptime': match.group(3),
                     'downtime': match.group(4),
@@ -131,18 +152,20 @@ def get_ont_summary(host: str, interface: dict) -> dict:
         return {'status': 'fail', 'detail': e}
 
 
-def reset_ont(host: str, id: int, interface: dict) -> dict:
+def reset_ont(host: str, _id: int, interface: dict) -> dict:
+    """Restart/reset ONT"""
     try:
         channel, ssh = connect_ssh(host)
         channel.send(bytes("config\n", 'utf-8'))
         sleep(0.1)
         clear_buffer(channel)
 
-        channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
+        channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n",
+            'utf-8'))
         sleep(0.1)
         clear_buffer(channel)
 
-        channel.send(bytes(f"ont reset {interface['port']} {id}\n", 'utf-8'))
+        channel.send(bytes(f"ont reset {interface['port']} {_id}\n", 'utf-8'))
         sleep(0.2)
         channel.send(bytes('y\n', 'utf-8')) # confirmation
         sleep(3)
@@ -153,16 +176,18 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
 
         channel.close()
         ssh.close()
-        return {'status': 'success', 'id': id}
+        return {'status': 'success', '_id': _id}
     except Exception as e:
         print(f'error reset ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
 
 def clear_buffer(channel: Channel):
+    """Clear console buffer"""
     if channel.recv_ready():
         channel.recv(32768)
 
 def read_output(channel: Channel):
+    """Read console output"""
     output = ""
     last_data_time = time()
 
@@ -174,7 +199,7 @@ def read_output(channel: Channel):
                 output += data
                 last_data_time = time()
                 # pagination
-                if "---- More ( Press 'Q' to break ) ----" in data:
+                if PAGINATION in data:
                     channel.send(bytes(" ", 'utf-8'))
                     continue
 
@@ -196,26 +221,27 @@ def _parse_int(data: str | None) -> int | None:
     if data.isdigit(): return int(data)
 
 def _parse_float(data: str | None) -> float | None:
-    if data is None: return None
-    if data == '-': return None
+    if data is None or data == '-':
+        return None
     data = data.replace('(C)', '').replace('%', '').strip()
     return float(data)
 
-def _parse_str(data: str | None, filter = lambda e: e) -> str | None:
-    if data is None: return None
-    if data == '-': return None
-    data = filter(data)
+def _parse_str(data: str | None, _filter = lambda e: e) -> str | None:
+    if data is None or data == '-':
+        return None
+    data = _filter(data)
     return data
 
 def parse_basic_info(output: str) -> dict | None:
+    """Parse basic ONT info"""
     if 'The required ONT does not exist' in output:
         return {'error': 'ONT не найден'}
     data = {}
-    for line in output.replace("---- More ( Press 'Q' to break ) ----\x1b[37D                                     \x1b[37D  ", '').splitlines():
+    for line in output.replace(PAGINATION_WITH_SPACES, '').splitlines():
         if ':' in line:
             data[line.split(':', 1)[0].strip()] = line.split(':', 1)[1].strip()
     if 'ONT online duration' in data:
-        uptime = fullmatch(r'^(\d*) day\(s\), (\d*) hour\(s\), (\d*) minute\(s\), (\d*) second\(s\)$', data['ONT online duration'])
+        uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
         uptime = None
     if 'ONT-ID' not in data: return None
@@ -226,7 +252,7 @@ def parse_basic_info(output: str) -> dict | None:
             'service': int(data['F/S/P'].split('/')[1]),
             'port': int(data['F/S/P'].split('/')[2])
         },
-        'ont_id': _parse_int(data.get('ONT-ID')),
+        'ont__id': _parse_int(data.get('ONT-_ID')),
         'status': data.get('Run state', 'unknown'),
         'mem_load': _parse_int(data.get('Memory occupation')),
         'cpu_load': _parse_int(data.get('CPU occupation')),
@@ -245,6 +271,7 @@ def parse_basic_info(output: str) -> dict | None:
     }
 
 def parse_optical_info(output) -> dict:
+    """Parse ONT optical info"""
     data = {}
     for line in output.splitlines():
         if ':' in line:
@@ -257,13 +284,16 @@ def parse_optical_info(output) -> dict:
     }
 
 def parse_catv_status(output: str) -> bool:
+    """Parse ONT CATV status"""
     lines = [line.strip() for line in output.splitlines()]
-    if 'port-ID  port-type  switch' not in lines: return False
-    line = lines[lines.index('port-ID  port-type  switch') + 2]
-    data = line.replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').split(' ')
+    if 'port-_ID  port-type  switch' not in lines: return False
+    line = lines[lines.index('port-_ID  port-type  switch') + 2]
+    data = line.replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').replace('  ', ' ')\
+        .split(' ')
     return data[3] == 'on'
 
 def ping(ip: None | str) -> None | str:
+    """Ping ONT by IP"""
     if not ip or ip in ['-', 'N/A', '']:
         return None
 
@@ -275,5 +305,5 @@ def ping(ip: None | str) -> None | str:
             time_match = search(r'time=([0-9.]+)', result.stdout)
             return f"{time_match.group(1)} ms" if time_match else "-"
         return None
-    except:
+    except Exception:
         return None
