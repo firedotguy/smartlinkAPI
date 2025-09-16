@@ -1,17 +1,15 @@
 from html import unescape
 
 from fastapi import APIRouter
-from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 
 from api import api_call, set_additional_data
-from utils import get_current_time, str_to_list, list_to_str, normalize_items
+from utils import get_current_time, str_to_list, list_to_str
 
 router = APIRouter(prefix='/task')
 
 @router.get('/{id}')
 def api_get_task(id: int):
-    # print(api_call('task', 'show', f'id={id}'))
     task = api_call('task', 'show', f'id={id}').get('data')
     if task is None:
         return JSONResponse({'status': 'fail', 'detail': 'task not found'})
@@ -24,7 +22,7 @@ def api_get_task(id: int):
                     'created_at': comment['dateAdd'],
                     'author_id': comment['employee_id'],
                     'content': comment['comment']
-                } for comment in task['comments'].values()
+                } for comment in task.get('comments', {}).values()
             ],
             'timestamps': {
                 'created_at': task['date'].get('create'),
@@ -35,9 +33,28 @@ def api_get_task(id: int):
             },
             'addata': {
                 'reason': task['additional_data'].get('30', {}).get('value'),
-                'solve': task['additional_data'].get('36', {}).get('value')
+                'solve': task['additional_data'].get('36', {}).get('value'),
+                'appeal': {
+                    'phone': task['additional_data'].get('29', {}).get('value'),
+                    'type': task['additional_data'].get('28', {}).get('value')
+                },
+                'cost': float(task['additional_data'].get('26', {}).get('value'))
+            } if task['type']['id'] == 37 else {
+                'reason': task['additional_data'].get('33', {}).get('value'),
+                'info': task['additional_data'].get('34', {}).get('value'),
+                'appeal': {
+                    'phone': task['additional_data'].get('29', {}).get('value'),
+                    'type': task['additional_data'].get('28', {}).get('value')
+                },
+            } if task['type']['id'] == 38 else {
+                'coord': list(map(float, task['additional_data']['7']['value'].split(','))) if '7' in task['additional_data'] else None,
+                'tariff': task['additional_data'].get('25', {}).get('value'),
+                'connect_type': task['additional_data'].get('27', {}).get('value')
+            } if task['type']['id'] == 28 else None,
+            'type': {
+                'id': task['type']['id'],
+                'name': task['type']['name']
             },
-            'type': task['type'],
             'author_id': task.get('author_employee_id'),
             'status': {
                 'id': task['state']['id'],
@@ -45,8 +62,9 @@ def api_get_task(id: int):
                 'system_id': task['state']['system_role']
             } if task.get('state') else None,
             'address': task['address']['text'] if task.get('address', {}).get('text') else None,
-            'customer': task['customer'][0],
-            'employees': list(task['staff']['employee'].values())
+            'customer': task['customer'][0] if 'customer' in task else None,
+            'employees': list(task['staff'].get('employee', {}).values()),
+            'divisions': list(task['staff'].get('division', {}).values()),
         }
     }
 
@@ -65,7 +83,7 @@ def api_get_task_comments(id: int):
     }
 
 
-@router.post('/task')
+@router.post('/')
 def api_post_task(customer_id: int, author_id: int, reason: str, phone: int, type: str,
         box: bool = False, box_id: int | None = None, description: str = '', divisions: str = ''):
     list_divisions = str_to_list(divisions)

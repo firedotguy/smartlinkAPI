@@ -3,7 +3,7 @@ from html import unescape
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime as dt
+from fastapi.requests import Request
 
 import routers.addata as addata
 import routers.box as box
@@ -72,6 +72,12 @@ app.include_router(ont.router)
 app.include_router(task.router)
 
 
+@app.middleware('http')
+async def check_api_key(request: Request, call_next):
+    if request.url != '/favicon.ico' and request.query_params.get('apikey') != APIKEY:
+        return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, 401)
+    return await call_next(request)
+
 @app.get('/favicon.ico', include_in_schema=False)
-async def favicon() -> FileResponse:
+def favicon() -> FileResponse:
     return FileResponse('favicon.ico')
