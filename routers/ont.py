@@ -10,7 +10,7 @@ router = APIRouter(prefix='/ont')
 def api_get_ont(request: Request, olt_id: int, sn: str):
     olt = [olt for olt in request.app.state.olts if olt['id'] == olt_id]
     if not olt:
-        return JSONResponse({'status': 'fail', 'detail': 'wrong olt id'}, status_code=404)
+        return JSONResponse({'status': 'fail', 'detail': 'olt not found'}, status_code=404)
     olt = olt[0]
     return {
         'status': 'OK',
@@ -21,7 +21,6 @@ def api_get_ont(request: Request, olt_id: int, sn: str):
 
 @router.post('/ont/restart')
 def api_post_ont_restart(id: int, host: str, fibre: int, service: int, port: int):
-
     return reset_ont(host, id, {'fibre': fibre, 'service': service, 'port': port})
 
 @router.get('/ont/summary')
