@@ -41,7 +41,7 @@ app.state.tmc_categories = [
 app.state.olts = [
     {
         'id': olt['id'],
-        'device': olt['device'],
+        'device': olt['name'],
         'host': olt['host'],
         'online': bool(olt['is_online']),
         'location': unescape(olt['location'])
