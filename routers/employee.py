@@ -12,7 +12,7 @@ def api_get_employee_login(login: str, password: str):
     return {
         'result': 'OK',
         'correct': result,
-        'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}')
+        'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}').get('id')
             if result else None
     }
 
