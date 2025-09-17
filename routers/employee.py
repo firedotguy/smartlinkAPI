@@ -6,7 +6,7 @@ from api import api_call
 
 router = APIRouter(prefix='/employee')
 
-@router.get('/employee/login')
+@router.get('/login')
 def api_get_employee_login(login: str, password: str):
     result = 'result' in api_call('employee', 'check_pass', f'login={login}&pass={password}')
     return {
@@ -16,7 +16,7 @@ def api_get_employee_login(login: str, password: str):
             if result else None
     }
 
-@router.get('/employee/name/{id}')
+@router.get('/name/{id}')
 def api_get_employee_name(id: int):
     data = api_call('employee', 'get_data', f'id={id}')
     if 'data' not in data:
@@ -28,7 +28,7 @@ def api_get_employee_name(id: int):
     }
 
 
-@router.get('/employee/divisions')
+@router.get('/divisions')
 def api_get_employee_divisions(request: Request):
     return {
         'result': 'OK',
