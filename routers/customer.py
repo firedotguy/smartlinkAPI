@@ -92,7 +92,7 @@ def api_get_customer(request: Request, id: int):
             'catalog': item['inventory_section_catalog_id']
         }
         for item in api_call('inventory', 'get_inventory_catalog',
-            f'id={list_to_str([str(i['inventory_type_id']) for i in items])}')['data'].values()
+            f'id={list_to_str([str(i["inventory_type_id"]) for i in items])}')['data'].values()
     ]
     inventory = []
     for item in items:
