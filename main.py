@@ -55,6 +55,8 @@ app.state.divisions = [
         'name': unescape(division['name'])
     } for division in api_call('employee', 'get_division_list')['data'].values()
 ]
+app.state.cached_employees = []
+app.state.cached_customers = []
 
 app.add_middleware(
     CORSMiddleware,
@@ -76,7 +78,8 @@ app.include_router(task.router)
 @app.middleware('http')
 async def check_api_key(request: Request, call_next):
     """API middleware for validate APIKEY"""
-    if request.url != '/favicon.ico' and request.query_params.get('apikey') != APIKEY:
+    url = request.url.path.rstrip('/')
+    if url in ('/favicon.ico', '') and request.query_params.get('apikey') != APIKEY:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, 401)
     return await call_next(request)
 
