@@ -48,7 +48,7 @@ def api_get_customer(request: Request, id: int):
 
     tariffs = [
         {'id': int(tariff['id']), 'name': request.app.state.tariffs[tariff['id']]}
-        for tariff in customer['tariff']['current']
+        for tariff in customer['tariff']['current'] if tariff['id']
     ]
 
     geodata = {}
