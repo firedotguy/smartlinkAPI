@@ -1,6 +1,6 @@
 # SmartLink API
 
-[![License: BSL v1](https://img.shields.io/badge/License-BSL-1.0-blue.svg)](LICENSE)
+[![License: BSL v1](https://img.shields.io/badge/License-BSL_v1.0-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
 ![FastAPI](https://img.shields.io/badge/Framework-FastAPI-green)
 
