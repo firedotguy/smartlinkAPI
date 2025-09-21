@@ -19,10 +19,10 @@ def api_get_ont(request: Request, olt_id: int, sn: str):
         'data': search_ont(sn, olt['host'])
     }
 
-@router.post('/ont/restart')
+@router.post('/restart')
 def api_post_ont_restart(id: int, host: str, fibre: int, service: int, port: int):
     return reset_ont(host, id, {'fibre': fibre, 'service': service, 'port': port})
 
-@router.get('/ont/summary')
+@router.get('/summary')
 def api_get_ont_summary(host: str, fibre: int, service: int, port: int):
     return get_ont_summary(host, {'fibre': fibre, 'service': service, 'port': port})
