@@ -42,7 +42,7 @@ def api_get_customer_search(query: str):
 # TODO: divide api calls
 @router.get('/{id}')
 def api_get_customer(request: Request, id: int):
-    customer = api_call('customer', 'get_data', f'id={id}')['data']
+    customer = api_call('customer', 'get_data', f'id={id}').get('data')
     if customer is None: return JSONResponse({'status': 'fail', 'detail': 'customer not found'},
         404)
 
