@@ -82,6 +82,14 @@ def api_get_task_comments(id: int):
         } for comment in comments]
     }
 
+@router.post('/{id}/comment')
+def api_post_task_comment(id: int, content: str, author: int | None):
+    comment_id = api_call('task', 'comment_add', f'id={id}&comment={content}{f"&employee_id={author}" if author else ""}')['Id']
+    return {
+        'status': 'success',
+        'id': comment_id
+    }
+
 
 @router.post('/')
 def api_post_task(customer_id: int, author_id: int, reason: str, phone: int, type: str,
