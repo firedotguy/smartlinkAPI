@@ -24,7 +24,7 @@ RE_ONT_SEARCH_ONLINE = r'^(\d*) day\(s\), (\d*) hour\(s\), (\d*) minute\(s\), (\
 
 # sequence: fibre -> service -> port -> ont
 
-def connect_ssh(host: str) -> tuple[Channel, SSHClient]:
+def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
     """Connect to SSH client using paramiko"""
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
@@ -37,15 +37,17 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient]:
     clear_buffer(channel)
     channel.send(bytes("enable\n", 'utf-8'))
     sleep(0.1)
+    olt_name = read_output(channel).splitlines()[-1].strip().rstrip('#')
     clear_buffer(channel)
-    return channel, ssh
+    return channel, ssh, olt_name
 
-def search_ont(sn: str, host: str) -> None | dict:
+def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
     """Search ONT by serial number and return its basic, optical and catv data"""
     start_time = time()
     ont_info: dict = {}
+    olt_name = None
     try:
-        channel, ssh = connect_ssh(host)
+        channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
         sleep(1)
@@ -65,9 +67,8 @@ def search_ont(sn: str, host: str) -> None | dict:
         sleep(0.1)
         clear_buffer(channel)
 
-
         channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} \
-{ont_info['ont__id']}\n", 'utf-8'))
+{ont_info['ont_id']}\n", 'utf-8'))
         sleep(0.2)
         if ont_info['status'] != 'offline':
             optical_info = parse_optical_info(read_output(channel))
@@ -76,7 +77,7 @@ def search_ont(sn: str, host: str) -> None | dict:
         catv_results = []
         for port_num in [1, 2]:
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} \
-{ont_info['ont__id']} catv {port_num}\n", 'utf-8'))
+{ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
             sleep(0.2)
             catv = parse_catv_status(read_output(channel))
             catv_results.append(catv)
@@ -95,16 +96,14 @@ def search_ont(sn: str, host: str) -> None | dict:
     finally:
         if ont_info == {}: return
         ont_info['duration'] = time() - start_time
-        return ont_info
+        return ont_info, olt_name
 
 
 def get_ont_summary(host: str, interface: dict) -> dict:
     """get all onts from port"""
     try:
-        channel, ssh = connect_ssh(host)
+        channel, ssh, _ = connect_ssh(host)
         channel.send(bytes("config\n", 'utf-8'))
-        sleep(0.1)
-        clear_buffer(channel)
 
         channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}\
 /{interface['port']}\n", 'utf-8'))
@@ -155,10 +154,8 @@ def get_ont_summary(host: str, interface: dict) -> dict:
 def reset_ont(host: str, _id: int, interface: dict) -> dict:
     """Restart/reset ONT"""
     try:
-        channel, ssh = connect_ssh(host)
+        channel, ssh, _ = connect_ssh(host)
         channel.send(bytes("config\n", 'utf-8'))
-        sleep(0.1)
-        clear_buffer(channel)
 
         channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n",
             'utf-8'))
@@ -252,7 +249,7 @@ def parse_basic_info(output: str) -> dict | None:
             'service': int(data['F/S/P'].split('/')[1]),
             'port': int(data['F/S/P'].split('/')[2])
         },
-        'ont__id': _parse_int(data.get('ONT-_ID')),
+        'ont_id': _parse_int(data.get('ONT-ID')),
         'status': data.get('Run state', 'unknown'),
         'mem_load': _parse_int(data.get('Memory occupation')),
         'cpu_load': _parse_int(data.get('CPU occupation')),
