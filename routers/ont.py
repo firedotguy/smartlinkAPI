@@ -6,7 +6,7 @@ from ont import search_ont, reset_ont, get_ont_summary
 
 router = APIRouter(prefix='/ont')
 
-@router.get('/')
+@router.get('')
 def api_get_ont(request: Request, olt_id: int, sn: str):
     olt = [olt for olt in request.app.state.olts if olt['id'] == olt_id]
     if not olt:
