@@ -54,8 +54,8 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         parsed_ont_info = parse_basic_info(read_output(channel))
 
-        if not parsed_ont_info:
-            return
+        if 'error' in parsed_ont_info:
+            return {'status': 'offline', 'detail': parsed_ont_info['error']}, olt_name
         ont_info = parsed_ont_info
 
         channel.send(bytes("config\n", 'utf-8'))
@@ -90,14 +90,10 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ping_result = ping(ont_info['ip'].split('/')[0] if ont_info.get('ip') else None)
 
         ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
+        return ont_info, olt_name
     except Exception as e:
         print(f'error search ont: {e.__class__.__name__}: {e}')
-        ont_info.update({'status': 'offline', 'error': str(e)})
-    finally:
-        if ont_info == {}: return
-        ont_info['duration'] = time() - start_time
-        return ont_info, olt_name
-
+        return {'status': 'offline', 'detail': str(e)}, olt_name
 
 def get_ont_summary(host: str, interface: dict) -> dict:
     """get all onts from port"""
@@ -229,7 +225,7 @@ def _parse_str(data: str | None, _filter = lambda e: e) -> str | None:
     data = _filter(data)
     return data
 
-def parse_basic_info(output: str) -> dict | None:
+def parse_basic_info(output: str) -> dict:
     """Parse basic ONT info"""
     if 'The required ONT does not exist' in output:
         return {'error': 'ONT не найден'}
@@ -241,7 +237,6 @@ def parse_basic_info(output: str) -> dict | None:
         uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
         uptime = None
-    if 'ONT-ID' not in data: return None
     return {
         'interface': {
             'name': data['F/S/P'],
