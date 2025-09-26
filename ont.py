@@ -104,34 +104,9 @@ def get_ont_summary(host: str, interface: dict) -> dict:
         channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}\
 /{interface['port']}\n", 'utf-8'))
         sleep(0.2)
-        out = [line.strip() for line in (read_output(channel)
-               .replace(PAGINATION_WITH_SPACES, '')
-               .split(DIV_IDER))]
-        if len(out) < 6:
-            return {'status': 'fail', 'detail': 'not enough sections'}
-        total = fullmatch(RE_ONT_SUMMARY_TOTAL, out[1])
-        if total is None:
-            print('error summary ont: total regexp fail')
-            return {'status': 'fail', 'detail': 'total regexp fail'}
-        online = int(total.group(1))
-        offline = int(total.group(2))
-        onts = []
-        for ont, ont2 in zip(out[3].splitlines(), out[5].splitlines()):
-            match = fullmatch(RE_ONT_SUMMARY_DATA1, ont.strip())
-            match2 = fullmatch(RE_ONT_SUMMARY_DATA2, ont2.strip())
-            if match is not None and match2 is not None:
-                onts.append({
-                    '_id': _parse_int(match.group(1)),
-                    'status': match.group(2),
-                    'uptime': match.group(3),
-                    'downtime': match.group(4),
-                    'cause': match.group(5),
-                    'sn': match2.group(2),
-                    'name': match2.group(3),
-                    'distance': _parse_int(match2.group(4)),
-                    'rx': _parse_float(match2.group(5)),
-                    'tx': _parse_float(match2.group(6))
-                })
+        online, offline, onts = parse_onts_info(read_output((channel)))
+        if isinstance(online, dict):
+            return online # error
 
         channel.close()
         ssh.close()
@@ -278,11 +253,45 @@ def parse_optical_info(output) -> dict:
 def parse_catv_status(output: str) -> bool:
     """Parse ONT CATV status"""
     lines = [line.strip() for line in output.splitlines()]
-    if 'port-_ID  port-type  switch' not in lines: return False
-    line = lines[lines.index('port-_ID  port-type  switch') + 2]
+    if 'port-ID  port-type  switch' not in lines:
+        print('catv table not found:', lines)
+        return False
+    line = lines[lines.index('port-ID  port-type  switch') + 2]
     data = line.replace('  ', ' ').replace('  ', ' ').replace('  ', ' ').replace('  ', ' ')\
         .split(' ')
     return data[3] == 'on'
+
+def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
+    out = [line.strip() for line in (output
+        .replace(PAGINATION_WITH_SPACES, '')
+        .split(DIV_IDER))
+    ]
+    if len(out) < 6:
+        return {'status': 'fail', 'detail': 'not enough sections'}, None, None
+    total = fullmatch(RE_ONT_SUMMARY_TOTAL, out[1])
+    if total is None:
+        print('error summary ont: total regexp fail')
+        return {'status': 'fail', 'detail': 'total regexp fail'}, None, None
+    online = int(total.group(1))
+    offline = int(total.group(2))
+    onts = []
+    for ont, ont2 in zip(out[3].splitlines(), out[5].splitlines()):
+        match = fullmatch(RE_ONT_SUMMARY_DATA1, ont.strip())
+        match2 = fullmatch(RE_ONT_SUMMARY_DATA2, ont2.strip())
+        if match is not None and match2 is not None:
+            onts.append({
+                '_id': _parse_int(match.group(1)),
+                'status': match.group(2),
+                'uptime': match.group(3),
+                'downtime': match.group(4),
+                'cause': match.group(5),
+                'sn': match2.group(2),
+                'name': match2.group(3),
+                'distance': _parse_int(match2.group(4)),
+                'rx': _parse_float(match2.group(5)),
+                'tx': _parse_float(match2.group(6))
+            })
+    return online, offline, onts
 
 def ping(ip: None | str) -> None | str:
     """Ping ONT by IP"""
