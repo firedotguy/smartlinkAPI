@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from api import api_call
 from utils import normalize_items, get_attach_url
 
-router = APIRouter(prefix='/attachs/')
+router = APIRouter(prefix='/attachs')
 
 @router.get('/customer/{id}')
 def api_get_attachs(id: int, include_task: bool = False):
