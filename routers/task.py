@@ -16,6 +16,7 @@ def api_get_task(id: int):
     return {
         'status': 'success',
         'data': {
+            'id': id,
             'comments': [
                 {
                     'id': comment['id'],
