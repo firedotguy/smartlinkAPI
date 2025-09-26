@@ -15,13 +15,13 @@ def api_get_ont(request: Request, olt_id: int, sn: str):
     res = search_ont(sn, olt['host'])
     if res is None:
         return {'status': 'fail', 'detail': 'ont not found'}
-    if res[0] is not None:
-        olt['name'] = res[0]
+    if res[1] is not None:
+        olt['name'] = res[1]
     return {
         'status': 'success',
         'sn': sn,
         'olt': olt,
-        'data': res[1]
+        'data': res[0]
     }
 
 @router.post('/restart')
