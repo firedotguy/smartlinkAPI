@@ -40,6 +40,7 @@ def api_get_task(id: int):
                     'type': task['additional_data'].get('28', {}).get('value')
                 },
                 'cost': float(task['additional_data'].get('26', {}).get('value'))
+                    if task['additional_data'].get('26', {}).get('value') else None
             } if task['type']['id'] == 37 else {
                 'reason': task['additional_data'].get('33', {}).get('value'),
                 'info': task['additional_data'].get('34', {}).get('value'),
@@ -48,7 +49,8 @@ def api_get_task(id: int):
                     'type': task['additional_data'].get('28', {}).get('value')
                 },
             } if task['type']['id'] == 38 else {
-                'coord': list(map(float, task['additional_data']['7']['value'].split(','))) if '7' in task['additional_data'] else None,
+                'coord': list(map(float, task['additional_data']['7']['value'].split(',')))
+                    if '7' in task['additional_data'] else None,
                 'tariff': task['additional_data'].get('25', {}).get('value'),
                 'connect_type': task['additional_data'].get('27', {}).get('value')
             } if task['type']['id'] == 28 else None,
