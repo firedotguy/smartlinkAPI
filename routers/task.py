@@ -94,7 +94,7 @@ def api_post_task_comment(id: int, content: str, author: int | None = None):
     }
 
 
-@router.post('/')
+@router.post('')
 def api_post_task(customer_id: int, author_id: int, reason: str, phone: int, type: str,
         box: bool = False, box_id: int | None = None, description: str = '', divisions: str = ''):
     list_divisions = str_to_list(divisions)
