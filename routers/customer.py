@@ -84,7 +84,10 @@ def api_get_customer(request: Request, id: int):
 
     # INVENTORY
     items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')\
-        .get('data', {}).values()
+        .get('data', {})
+    if isinstance(items, dict):
+        items = items.values()
+
     item_names = [
         {
             'id': str(item['id']),
