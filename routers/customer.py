@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from api import api_call
 from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn,\
-    parse_agreement, status_to_str
+    parse_agreement, status_to_str, str_to_list
 
 router = APIRouter(prefix='/customer')
 
@@ -113,7 +113,7 @@ def api_get_customer(request: Request, id: int):
 
 
     # TASK
-    tasks_id = api_call('task', 'get_list', f'customer_id={id}')['list'].split(',')
+    tasks_id = str_to_list(api_call('task', 'get_list', f'customer_id={id}')['list'])
     if tasks_id:
         tasks_data = normalize_items(api_call('task', 'show', f'id={list_to_str(tasks_id)}'))
         tasks = []

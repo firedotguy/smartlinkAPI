@@ -2,12 +2,12 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from api import api_call
-from utils import extract_sn, normalize_items, remove_sn, status_to_str, list_to_str
+from utils import extract_sn, normalize_items, remove_sn, status_to_str, list_to_str, str_to_list
 
 router = APIRouter(prefix='/box')
 
 @router.get('/{id}')
-def api_get_box(id: int):
+def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
     def _get_onu_level(name):
         if extract_sn(name) is None: return
         res = api_call('device', 'get_ont_data', f'id={extract_sn(name)}')
@@ -25,7 +25,8 @@ def api_get_box(id: int):
             'last_activity': customer.get('date_activity'),
             'status': status_to_str(customer['state_id']),
             'sn': extract_sn(customer['full_name']),
-            'onu_level': _get_onu_level(customer['full_name'])
+            'onu_level': _get_onu_level(customer['full_name']) if get_onu_level else None,
+            'tasks': list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer["id"]}')['list']))) if get_tasks else None
         } for customer in normalize_items(api_call('customer', 'get_data',
             f'id={list_to_str(customers_id)}')) if customer['full_name'] is not None]
 
