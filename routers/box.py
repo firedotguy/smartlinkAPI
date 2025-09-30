@@ -14,7 +14,7 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
         if not isinstance(res.get('data'), dict): return
         return res['data'].get('level_onu_rx')
 
-    house = api_call('address', 'get_house', f'building_id={id}')['data']
+    house = api_call('address', 'get_house', f'building_id={id}').get('data')
     if house:
         house = list(house.values())[0]
         customers_id = api_call('customer', 'get_customers_id',
@@ -50,4 +50,4 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
     return JSONResponse({
         'status': 'fail',
         'detail': 'box not found'
-    }, status_code=404)
+    }, 404)
