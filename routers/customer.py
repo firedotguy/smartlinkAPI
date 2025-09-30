@@ -156,7 +156,7 @@ def api_get_customer(request: Request, id: int):
         'tasks': tasks,
         # 'onu_level': get_ont_data(extract_sn(customer['full_name'])),
         'tariffs': tariffs,
-        'phones': [phone['number'] for phone in customer['phone']],
+        'phones': [phone['number'] for phone in customer['phone'] if phone['number']],
         'last_activity': customer['date_activity'],
         'inventory': inventory,
         'box_id': customer['address'][0]['house_id'],
