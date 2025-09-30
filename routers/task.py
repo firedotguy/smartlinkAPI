@@ -66,8 +66,8 @@ def api_get_task(id: int):
             } if task.get('state') else None,
             'address': task['address']['text'] if task.get('address', {}).get('text') else None,
             'customer': task['customer'][0] if 'customer' in task else None,
-            'employees': list(task['staff'].get('employee', {}).values()),
-            'divisions': list(task['staff'].get('division', {}).values()),
+            'employees': list(task.get('staff', {}).get('employee', {}).values()),
+            'divisions': list(task.get('staff', {}).get('division', {}).values()),
         }
     }
 
