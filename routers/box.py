@@ -30,20 +30,18 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
         } for customer in normalize_items(api_call('customer', 'get_data',
             f'id={list_to_str(customers_id)}')) if customer['full_name'] is not None]
 
+        onu_levels = [
+            customer['onu_level']
+            for customer in customers
+            if customer['onu_level']
+        ]
+
         return {
             'status': 'success',
             'id': id,
             'building_id': house['building_id'],
             'name': house['full_name'],
-            'average_onu_level': sum([
-                customer['onu_level']
-                for customer in customers
-                if customer['onu_level']
-            ]) / len([
-                customer['onu_level']
-                for customer in customers
-                if customer['onu_level']
-            ]) if get_onu_level else None,
+            'average_onu_level': sum(onu_levels) / len(onu_levels) if onu_levels else None,
             'box_tasks': list_to_str(api_call('task', 'get_list', f'house_id={id}')['list']) if get_tasks else None,
             'customers': customers
         }
