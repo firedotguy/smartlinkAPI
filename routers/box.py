@@ -26,7 +26,9 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
             'status': status_to_str(customer['state_id']),
             'sn': extract_sn(customer['full_name']),
             'onu_level': _get_onu_level(customer['full_name']) if get_onu_level else None,
-            'tasks': list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer["id"]}')['list']))) if get_tasks else None
+            'tasks': list(map(int, str_to_list(
+                api_call('task', 'get_list', f'customer_id={customer["id"]}&state_id=18,3,17,11,1,16,19')['list']
+            ))) if get_tasks else None
         } for customer in normalize_items(api_call('customer', 'get_data',
             f'id={list_to_str(customers_id)}')) if customer['full_name'] is not None]
 
@@ -42,7 +44,9 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
             'building_id': house['building_id'],
             'name': house['full_name'],
             'average_onu_level': sum(onu_levels) / len(onu_levels) if onu_levels else None,
-            'box_tasks': list_to_str(api_call('task', 'get_list', f'house_id={id}')['list']) if get_tasks else None,
+            'box_tasks': list_to_str(
+                api_call('task', 'get_list', f'house_id={id}&state_id=18,3,17,11,1,16,19')['list'])
+                if get_tasks else None,
             'customers': customers
         }
     return JSONResponse({
