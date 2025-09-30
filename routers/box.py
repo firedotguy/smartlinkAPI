@@ -27,7 +27,7 @@ def api_get_box(id: int):
             'sn': extract_sn(customer['full_name']),
             'onu_level': _get_onu_level(customer['full_name'])
         } for customer in normalize_items(api_call('customer', 'get_data',
-            f'id={list_to_str(customers_id)}'))]
+            f'id={list_to_str(customers_id)}')) if customer['full_name'] is not None]
 
         return {
             'status': 'success',
