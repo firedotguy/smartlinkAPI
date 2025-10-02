@@ -8,7 +8,7 @@ router = APIRouter(prefix='/box')
 
 @router.get('/{id}')
 def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
-    def _get_onu_level(name):
+    def _get_onu_level(name) -> float | None:
         if extract_sn(name) is None: return
         res = api_call('device', 'get_ont_data', f'id={extract_sn(name)}')
         if not isinstance(res.get('data'), dict): return
@@ -44,9 +44,9 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
             'building_id': house['building_id'],
             'name': house['full_name'],
             'average_onu_level': sum(onu_levels) / len(onu_levels) if onu_levels else None,
-            'box_tasks': str_to_list(
-                api_call('task', 'get_list', f'house_id={id}&state_id=18,3,17,11,1,16,19')['list'])
-                if get_tasks else None,
+            'box_tasks': list(map(int, str_to_list(
+                api_call('task', 'get_list', f'house_id={id}&state_id=18,3,17,11,1,16,19')['list']
+            ))) if get_tasks else None,
             'customers': customers
         }
     return JSONResponse({
