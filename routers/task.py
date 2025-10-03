@@ -80,7 +80,7 @@ def api_get_task(id: int):
 def api_get_task_comments(id: int):
     comments = api_call('task', 'get_comment', f'id={id}')['data']
     return {
-        'status': 'OK',
+        'status': 'success',
         'id': id,
         'comments': [{
             'id': comment['comment_id'],

@@ -33,7 +33,7 @@ def api_get_customer_search(query: str):
             f'id={list_to_str(customers)}'))]
 
     return {
-        'result': 'OK',
+        'status': 'success',
         'customers': customer_data,
         'search_type': 'agreement' if query.isdigit() else 'name'
     }
@@ -145,7 +145,7 @@ def api_get_customer(request: Request, id: int):
         tasks = []
 
     return {
-        'result': 'OK',
+        'status': 'success',
         'id': customer['id'],
         'olt_id': olt_id,
         'balance': customer['balance'],

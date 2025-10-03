@@ -8,9 +8,9 @@ router = APIRouter(prefix='/employee')
 
 @router.get('/login')
 def api_get_employee_login(login: str, password: str):
-    result = 'result' in api_call('employee', 'check_pass', f'login={login}&pass={password}')
+    result = 'status' in api_call('employee', 'check_pass', f'login={login}&pass={password}')
     return {
-        'result': 'OK',
+        'status': 'success',
         'correct': result,
         'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}').get('id')
             if result else None
@@ -31,6 +31,6 @@ def api_get_employee_name(id: int):
 @router.get('/divisions')
 def api_get_employee_divisions(request: Request):
     return {
-        'result': 'OK',
+        'status': 'success',
         'data': request.app.state.divisions
     }
