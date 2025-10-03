@@ -6,7 +6,7 @@ from config import API_URL as api
 
 disable_warnings(InsecureRequestWarning)
 
-def api_call(cat: str, action: str, data: str = '') -> dict:
+def api_call(cat: str, action: str, data: str = '', timeout=15) -> dict:
     """Base UserSide API call
 
     Args:
@@ -18,7 +18,7 @@ def api_call(cat: str, action: str, data: str = '') -> dict:
         dict: API result
     TODO: provide data using query params instead of one string
     """
-    return get(f'{api}{cat}&action={action}&{data}', verify=False, timeout=15).json()
+    return get(f'{api}{cat}&action={action}&{data}', verify=False, timeout=timeout).json()
 
 def set_additional_data(category, field, _id, value):
     """Set additional data value"""
