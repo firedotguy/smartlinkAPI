@@ -64,7 +64,12 @@ def api_get_task(id: int):
                 'name': task['state']['name'],
                 'system_id': task['state']['system_role']
             } if task.get('state') else None,
-            'address': task.get('address', {}).get('text'),
+            'address': {
+                'id': task['address'].get('addressId'),
+                'name': task['address'].get('text'),
+                'apartment': unescape(task['address']['apartment'])
+                    if task['address'].get('apartment') else None
+            },
             'customer': task['customer'][0] if 'customer' in task else None,
             'employees': list(task.get('staff', {}).get('employee', {}).values()),
             'divisions': list(task.get('staff', {}).get('division', {}).values()),
