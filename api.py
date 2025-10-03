@@ -20,7 +20,7 @@ def api_call(cat: str, action: str, data: str = '', timeout=15) -> dict:
     """
     return get(f'{api}{cat}&action={action}&{data}', verify=False, timeout=timeout).json()
 
-def set_additional_data(category, field, _id, value):
+def set_additional_data(category, field, id , value):
     """Set additional data value"""
     api_call('additional_data', 'change_value', f'cat_id={category}&field_id={field}&object_id=\
-{_id}&value={value}')
+{id}&value={value}')

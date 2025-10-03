@@ -64,7 +64,7 @@ def api_get_task(id: int):
                 'name': task['state']['name'],
                 'system_id': task['state']['system_role']
             } if task.get('state') else None,
-            'address': task['address']['text'] if task.get('address', {}).get('text') else None,
+            'address': task.get('address', {}).get('text'),
             'customer': task['customer'][0] if 'customer' in task else None,
             'employees': list(task.get('staff', {}).get('employee', {}).values()),
             'divisions': list(task.get('staff', {}).get('division', {}).values()),
@@ -95,35 +95,42 @@ def api_post_task_comment(id: int, content: str, author: int | None = None):
 
 
 @router.post('')
-def api_post_task(customer_id: int, author_id: int, reason: str, phone: int, type: str,
-        box: bool = False, box_id: int | None = None, description: str = '', divisions: str = ''):
+def api_post_task(
+    customer_id: int | None = None, author_id: int | None = None,
+    reason: str | None = None, phone: int | None = None, type: str | None = None,
+    box: bool = False, address_id: int | None = None, description: str | None = None,
+    divisions: str = ''
+):
+    if box and address_id is None:
+        return JSONResponse({'status': 'fail', 'detail': 'address_id is required for box'}, 422)
+    if not box and customer_id is None:
+        return JSONResponse({'status': 'fail', 'detail': 'customer_id is required for customer'}, 422)
+
     list_divisions = str_to_list(divisions)
     if box:
-        id = api_call('task', 'add', f'work_typer=38&work_datedo={get_current_time()}\
-&customer_id={customer_id}&author_employee_id={author_id}&address_id={box_id}&opis={description}\
-{"&division=" + list_to_str(list_divisions) if list_to_str(list_divisions) else ""}\
-&deadline_hour=72')['Id']
+        id = api_call(
+            'task', 'add',
+            f'work_typer=38&work_datedo={get_current_time()}&author_employee_id={author_id}'
+            f'&address_id={address_id}&opis={description}&division={list_to_str(list_divisions)}'
+            f'&deadline_hour=72&customer_id={customer_id}'
+        )['Id']
     else:
-        id = api_call('task', 'add', f'work_typer=37&work_datedo={get_current_time()}\
-&customer_id={customer_id}&author_employee_id={author_id}&opis={description}\
-{"&division=" + list_to_str(list_divisions) if list_to_str(list_divisions) else ""}\
-&deadline_hour=72')['Id']
+        id = api_call(
+            'task', 'add',
+            f'work_typer=37&work_datedo={get_current_time()}&author_employee_id={author_id}'
+            f'&opis={description}&division={list_to_str(list_divisions)}&customer_id={customer_id}'
+            f'&deadline_hour=72'
+        )['Id']
 
-    set_additional_data(17, 33 if box else 30, id, reason)
-    set_additional_data(17, 29, id, phone)
-    set_additional_data(17, 28, id, type)
+    if reason:
+        set_additional_data(17, 33 if box else 30, id, reason)
+    if phone:
+        set_additional_data(17, 29, id, phone)
+    if type:
+        set_additional_data(17, 28, id, type)
     if description:
-        api_call('task', 'comment_add', f'id={id}&comment={description}')
+        api_call('task', 'comment_add', f'id={id}&comment={description}&employee_id={author_id}')
     return {
-        'status': 'OK',
-        'id': id,
-        'customer_id': customer_id,
-        'author_id': author_id,
-        'reason': reason,
-        'phone': phone,
-        'type': type,
-        'description': description,
-        'divisions': list_divisions,
-        'is_magistral': box,
-        'box_id': box_id
+        'status': 'success',
+        'id': id
     }

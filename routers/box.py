@@ -17,8 +17,7 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
     house = api_call('address', 'get_house', f'building_id={id}').get('data')
     if house:
         house = list(house.values())[0]
-        customers_id = api_call('customer', 'get_customers_id',
-            f'house_id={house["building_id"]}')['data']
+        customers_id = api_call('customer', 'get_customers_id', f'house_id={id}')['data']
         customers = [{
             'id': customer['id'],
             'name': remove_sn(customer['full_name']),
@@ -41,10 +40,10 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
         return {
             'status': 'success',
             'id': id,
-            'building_id': house['building_id'],
+            'address_id': house['id'],
             'name': house['full_name'],
             'average_onu_level': sum(onu_levels) / len(onu_levels) if onu_levels else None,
-            'box_tasks': list(map(int, str_to_list(
+            'tasks': list(map(int, str_to_list(
                 api_call('task', 'get_list', f'house_id={id}&state_id=18,3,17,11,1,16,19')['list']
             ))) if get_tasks else None,
             'customers': customers

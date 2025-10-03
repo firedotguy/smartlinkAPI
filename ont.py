@@ -122,7 +122,7 @@ def get_ont_summary(host: str, interface: dict) -> dict:
         return {'status': 'fail', 'detail': e}
 
 
-def reset_ont(host: str, _id: int, interface: dict) -> dict:
+def reset_ont(host: str, id : int, interface: dict) -> dict:
     """Restart/reset ONT"""
     try:
         channel, ssh, _ = connect_ssh(host)
@@ -133,7 +133,7 @@ def reset_ont(host: str, _id: int, interface: dict) -> dict:
         sleep(0.1)
         clear_buffer(channel)
 
-        channel.send(bytes(f"ont reset {interface['port']} {_id}\n", 'utf-8'))
+        channel.send(bytes(f"ont reset {interface['port']} {id}\n", 'utf-8'))
         sleep(0.2)
         channel.send(bytes('y\n', 'utf-8')) # confirmation
         sleep(3)
@@ -144,7 +144,7 @@ def reset_ont(host: str, _id: int, interface: dict) -> dict:
 
         channel.close()
         ssh.close()
-        return {'status': 'success', '_id': _id}
+        return {'status': 'success', 'id': id}
     except Exception as e:
         print(f'error reset ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
