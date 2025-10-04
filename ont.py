@@ -214,8 +214,9 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
 
         if line == PAGINATION: # pagination line
             continue
+
         if PAGINATION in line: # partially-pagination line
-            line.strip(PAGINATION).strip('\x1b[37D')
+            line = line.strip(PAGINATION).strip('\x1b[37D')
 
         if line.startswith('Notes:') or is_notes: # notes line
             is_notes = True
@@ -239,7 +240,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             tables.append([])
             continue
 
-    return fields, tables
+    return fields, [table for table in tables if table]
 
 def parse_basic_info(raw: str) -> dict:
     """Parse basic ONT info"""
