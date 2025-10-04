@@ -212,8 +212,10 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
                 is_table = False
             continue
 
-        if PAGINATION in line: # pagination line
+        if line == PAGINATION: # pagination line
             continue
+        if PAGINATION in line: # partially-pagination line
+            line.strip(PAGINATION).strip('\x1b[37D')
 
         if line.startswith('Notes:') or is_notes: # notes line
             is_notes = True
@@ -230,7 +232,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             tables[-1].append({key: _parse_value(value) for key, value in zip(table_fields, split(r'\s+', line))})
             continue
 
-        if not is_table and len(split(r'\s{2,}', line)) > 1: # table heading line
+        if not is_table and len(split(r'\s+', line)) > 1: # table heading line
             is_table = True
             is_table_heading = True
             table_fields = [c for c in split(r'\s+', line.strip()) if c]
