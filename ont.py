@@ -247,7 +247,17 @@ def parse_optical_info(output) -> dict:
     return {
         'rx': _parse_float(data.get('Rx optical power(dBm)')),
         'tx': _parse_float(data.get('Tx optical power(dBm)')),
-        'temp': _parse_int(data.get('Temperature(C)'))
+        'temp': _parse_int(data.get('Temperature(C)')),
+        'bias': _parse_int(data.get('Laser bias current(mA)')),
+        'olt_rx': _parse_float(data.get('OLT Rx ONT optical power(dBm)')),
+        'prec': _parse_float(data.get('Optical power precision(dBm)')),
+        'catv_rx': _parse_float(data.get('CATV Rx optical power(dBm)')),
+        'vendor': {
+            'name': _parse_str(data.get('Vendor name')),
+            'rev': _parse_str(data.get('Vendor rev')),
+            'pn': _parse_str(data.get('Vendor PN')),
+            'sn': _parse_str(data.get('Vendor SN'))
+        }
     }
 
 def parse_catv_status(output: str) -> bool:
