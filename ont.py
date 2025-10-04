@@ -246,7 +246,7 @@ def parse_basic_info(output: str) -> dict:
         ports_table = ports_table[0]
     else:
         ports_table = None
-
+    print(data['F/S/P'], data['ONT IP 0 address/mask'])
     return {
         'interface': {
             'name': data['F/S/P'],
@@ -259,7 +259,7 @@ def parse_basic_info(output: str) -> dict:
         'mem_load': data.get('Memory occupation'),
         'cpu_load': data.get('CPU occupation'),
         'temp': data['Temperature'],
-        'ip': data['ONT IP 0 address/mask'].split('/')[0] if 'ONT IP 0 address/mask' in data else None,
+        'ip': data['ONT IP 0 address/mask'].split('/')[0] if data.get('ONT IP 0 address/mask') else None,
         'last_down_cause': data.get('Last down cause'),
         'last_down': data.get('Last down time'),
         'last_up': data.get('Last up time'),
