@@ -55,7 +55,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        sleep(2)
+        sleep(2.3)
         parsed_ont_info = parse_basic_info(read_output(channel))
 
         if 'error' in parsed_ont_info:
@@ -185,7 +185,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             return None
         if fullmatch(r'[+-]?\d+[.,]\d+', value):
             return float(value.replace(',', '.'))
-        if value.isdigit():
+        if fullmatch(r'[+-]?\d+', value):
             return int(value)
         if value.lower() in ('online', 'enable', 'support', 'concern', 'on'):
             return True
@@ -197,12 +197,14 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     tables = []
     is_table = False
     is_table_heading = False
+    is_notes = False
     table_fields = []
 
     for line in raw.splitlines()[1:-1]: # cut promprt lines
         line = line.strip() # remove whitespaces
 
-        if fullmatch(r'\-{5,}', line):
+        if fullmatch(r'\-{5,}', line): # divider line
+            is_notes = False
             if is_table_heading:
                 is_table_heading = False
                 continue
@@ -210,21 +212,25 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
                 is_table = False
             continue
 
-        if line.startswith('Notes:'):
+        if PAGINATION in line: # pagination line
             continue
 
-        if ':' in line: # standalone field
+        if line.startswith('Notes:') or is_notes: # notes line
+            is_notes = True
+            continue
+
+        if ':' in line: # standalone field line
             is_table = False
             pair = list(map(lambda i: i.strip(), line.split(':', maxsplit=1)))
             fields[pair[0]] = _parse_value(pair[1])
             continue
 
-        if is_table and not is_table_heading: # table field
+        if is_table and not is_table_heading: # table field line
             assert tables
             tables[-1].append({key: _parse_value(value) for key, value in zip(table_fields, split(r'\s+', line))})
             continue
 
-        if not is_table and len(split(r'\s{2,}', line)) > 1: # table begin
+        if not is_table and len(split(r'\s{2,}', line)) > 1: # table heading line
             is_table = True
             is_table_heading = True
             table_fields = [c for c in split(r'\s+', line.strip()) if c]
@@ -299,7 +305,7 @@ def parse_catv_status(output: str) -> bool:
     """Parse ONT CATV status"""
     _, tables = _parse_output(output)
     print(tables[0][0])
-    return tables[0][0].get('switch', False)
+    return tables[0][0].get('switch') or tables[0][0].get('Port') or False
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
