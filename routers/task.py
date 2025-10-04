@@ -9,10 +9,10 @@ from utils import get_current_time, str_to_list, list_to_str
 router = APIRouter(prefix='/task')
 
 @router.get('/{id}')
-def api_get_task(id: int):
+def api_get_task(id: int, get_employee_names: bool = True):
     task = api_call('task', 'show', f'id={id}').get('data')
     if task is None:
-        return JSONResponse({'status': 'fail', 'detail': 'task not found'})
+        return JSONResponse({'status': 'fail', 'detail': 'task not found'}, 404)
     return {
         'status': 'success',
         'data': {
@@ -21,7 +21,12 @@ def api_get_task(id: int):
                 {
                     'id': comment['id'],
                     'created_at': comment['dateAdd'],
-                    'author_id': comment['employee_id'],
+                    'author': {
+                        'id': comment['employee_id'],
+                        'name': (api_call('employee', 'get_data', f'id={comment['employee_id']}')
+                                .get('data', {}).get(str(comment['employee_id']), {}).get('name')
+                                if get_employee_names else None)
+                    } if comment.get('employee_id') else None,
                     'content': comment['comment']
                 } for comment in task.get('comments', {}).values()
             ],
@@ -58,7 +63,12 @@ def api_get_task(id: int):
                 'id': task['type']['id'],
                 'name': task['type']['name']
             },
-            'author_id': task.get('author_employee_id'),
+            'author': {
+                'id': task['author_employee_id'],
+                'name': (api_call('employee', 'get_data', f'id={task['author_employee_id']}')
+                    .get('data', {}).get(str(task['author_employee_id']), {}).get('name')
+                    if get_employee_names else None)
+            },
             'status': {
                 'id': task['state']['id'],
                 'name': task['state']['name'],
