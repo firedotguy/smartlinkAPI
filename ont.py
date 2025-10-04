@@ -164,7 +164,7 @@ def read_output(channel: Channel):
                     continue
 
                 # command completed ("user#" input in data)
-                if data.strip().endswith('#'):
+                if output.strip().endswith('#'):
                     break
                 sleep(0.05)
         # if no new data more than 1 seconds and output is not empty
@@ -172,7 +172,7 @@ def read_output(channel: Channel):
             print('no new data more than 1 seconds')
             break
         # if no new data more than 5 seconds and output is empty
-        if time() - last_data_time > 5 and not len(output.splitlines()) < 2:
+        if time() - last_data_time > 5 and len(output.splitlines()) < 2:
             print('warn: no new data more than 5 seconds')
             break
         sleep(0.01)
