@@ -199,7 +199,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     is_table = False
     table_fields = []
 
-    for line in raw.splitlines():
+    for line in raw.splitlines()[1:-1]: # cut promprt lines
         line = line.strip() # remove whitespaces
 
         if fullmatch(r'\-{5,}', line):
@@ -237,13 +237,13 @@ def parse_basic_info(output: str) -> dict:
         uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
         uptime = None
-
-    ports_table = [table for table in tables if table[0].keys() == ('Max-adaptive-number', 'Port-number', 'Port-type')]
+    print(data, tables)
+    ports_table = [table for table in tables if table and table[0].keys() == ('Max-adaptive-number', 'Port-number', 'Port-type')]
     if ports_table:
         ports_table = ports_table[0]
     else:
         ports_table = None
-    print(data)
+
     return {
         'interface': {
             'name': data['F/S/P'],
