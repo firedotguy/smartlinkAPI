@@ -216,7 +216,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             continue
 
         if PAGINATION in line: # partially-pagination line
-            line = line.strip(PAGINATION).strip('\x1b[37D')
+            line = line.strip(PAGINATION).strip('\x1b[37D').strip('x1b[37D')
 
         if line.startswith('Notes:') or is_notes: # notes line
             is_notes = True
