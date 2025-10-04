@@ -48,14 +48,13 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
 
 def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
     """Search ONT by serial number and return its basic, optical and catv data"""
-    start_time = time()
     ont_info: dict = {}
     olt_name = None
     try:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        sleep(2.3)
+        sleep(2.4)
         parsed_ont_info = parse_basic_info(read_output(channel))
 
         if 'error' in parsed_ont_info:
@@ -200,7 +199,9 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     is_notes = False
     table_fields = []
 
-    for line in raw.splitlines()[1:-1]: # cut promprt lines
+    raw.replace(PAGINATION, '').replace('\x1b[37D', '').replace('x1b[37D', '') # remove stupid pagination
+
+    for line in raw.splitlines()[1:-1]: # cut prompt lines
         line = line.strip() # remove whitespaces
 
         if fullmatch(r'\-{5,}', line): # divider line
@@ -212,11 +213,11 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
                 is_table = False
             continue
 
-        if line == PAGINATION: # pagination line
-            continue
+        # if line == PAGINATION: # pagination line
+        #     continue
 
-        if PAGINATION in line: # partially-pagination line
-            line = line.strip(PAGINATION).strip('\x1b[37D').strip('x1b[37D')
+        # if PAGINATION in line: # partially-pagination line
+        #     line = line.strip(PAGINATION).strip('\x1b[37D').strip('x1b[37D')
 
         if line.startswith('Notes:') or is_notes: # notes line
             is_notes = True
