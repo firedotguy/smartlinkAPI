@@ -254,6 +254,7 @@ def parse_basic_info(raw: str) -> dict:
         ports_table = ports_table[0]
     else:
         ports_table = None
+    print(ports_table)
     return {
         'interface': {
             'name': data['F/S/P'],
@@ -294,6 +295,7 @@ def parse_optical_info(raw: str) -> dict:
         'olt_rx': data.get('OLT Rx ONT optical power(dBm)'),
         'prec': data.get('Optical power precision(dBm)'),
         'catv_rx': data.get('CATV Rx optical power(dBm)'),
+        'voltage': data.get('Voltage(V)'),
         'vendor': {
             'name': data.get('Vendor name'),
             'rev': data.get('Vendor rev'),
