@@ -178,7 +178,7 @@ def read_output(channel: Channel):
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     def _parse_value(value: str) -> str | float | int | bool | None:
         value = value.strip()
-        value = split(r"06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
+        value = split(r"\+06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
 
         if value == '-':
             return None
@@ -252,7 +252,7 @@ def parse_basic_info(raw: str) -> dict:
         uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
         uptime = None
-    ports_table = [table for table in tables if ('Max-adaptive-number', 'Port-number', 'Port-type') == set(table[0].keys())]
+    ports_table = [table for table in tables if print(set(table[0].keys()), ('Max-adaptive-number', 'Port-number', 'Port-type'), ('Max-adaptive-number', 'Port-number', 'Port-type') == set(table[0].keys()))]#('Max-adaptive-number', 'Port-number', 'Port-type') == set(table[0].keys())]
     if ports_table:
         ports_table = ports_table[0]
     else:
@@ -282,8 +282,8 @@ def parse_basic_info(raw: str) -> dict:
             'minutes': int(uptime.group(3)),
             'seconds': int(uptime.group(4))
         } if uptime else None,
-        '_catv_ports': [item for item in ports_table if item.get('Port-type') == 'CATV'][0] if ports_table else None,
-        '_eth_ports': [item for item in ports_table if item.get('Port-type') == 'ETH'][0] if ports_table else None
+        '_catv_ports': [item for item in ports_table if item.get('Port-type') == 'CATV'][0].get('Port-number') if ports_table else None,
+        '_eth_ports': [item for item in ports_table if item.get('Port-type') == 'ETH'][0].get('Port-number') if ports_table else None
     }
 
 def parse_optical_info(raw: str) -> dict:
