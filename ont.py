@@ -73,7 +73,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
             ont_info['optical'] = optical_info
 
         catv_results = []
-        for port_num in range(1, (ont_info['_catv_ports'] + 1) or 3):
+        for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
             sleep(0.1)
             catv = parse_catv_status(read_output(channel))
@@ -237,11 +237,12 @@ def parse_basic_info(output: str) -> dict:
         uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
         uptime = None
-    ports_table = [table for table in tables if table and table[0].keys() == ('Max-adaptive-number', 'Port-number', 'Port-type')]
+    ports_table = [table for table in tables if table and ('Max-adaptive-number', 'Port-number', 'Port-type') in table[0].keys()]
     if ports_table:
         ports_table = ports_table[0]
     else:
         ports_table = None
+    print(ports_table, [item for item in ports_table if item.get('Port-type') == 'CATV'][0] if ports_table else None)
     return {
         'interface': {
             'name': data['F/S/P'],
