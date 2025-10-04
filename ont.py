@@ -54,7 +54,6 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        sleep(2)
         parsed_ont_info = parse_basic_info(read_output(channel))
 
         if 'error' in parsed_ont_info:
@@ -66,7 +65,6 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         clear_buffer(channel)
 
         channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
-        sleep(0.1)
         if ont_info.get('online'):
             optical_info = parse_optical_info(read_output(channel))
             ont_info['optical'] = optical_info
@@ -74,7 +72,6 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
-            sleep(0.1)
             catv = parse_catv_status(read_output(channel))
             catv_results.append(catv)
 
@@ -97,7 +94,6 @@ def get_ont_summary(host: str, interface: dict) -> dict:
         channel, ssh, _ = connect_ssh(host)
 
         channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
-        sleep(0.1)
         online, offline, onts = parse_onts_info(read_output((channel)))
         if isinstance(online, dict):
             return online # error
