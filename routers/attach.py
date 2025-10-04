@@ -25,7 +25,9 @@ def api_get_attachs(id: int, include_task: bool = False):
             'name': attach['internal_filepath'],
             'extension': attach['internal_filepath'].split('.')[1].lower()
                 if '.' in attach['internal_filepath'] else None,
-            'date': attach['date_add'],
-            'source': attach.get('source', 'customer')
+            'created_at': attach['date_add'],
+            'source': attach.get('source', 'customer'),
+            'source_id': attach.get('object_id'),
+            'author_id': attach.get('employee_id')
         } for attach in attachs]
     }

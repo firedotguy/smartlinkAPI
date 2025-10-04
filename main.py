@@ -12,6 +12,7 @@ from routers import employee
 from routers import neomobile
 from routers import ont
 from routers import task
+from routers import attach
 from api import api_call
 from config import API_KEY as APIKEY
 
@@ -67,6 +68,7 @@ app.add_middleware(
 )
 
 app.include_router(addata.router)
+app.include_router(attach.router)
 app.include_router(box.router)
 app.include_router(customer.router)
 app.include_router(employee.router)

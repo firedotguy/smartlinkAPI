@@ -142,7 +142,7 @@ def normalize_items(raw: dict) -> list:
     data = raw.get('data')
     if data is None:
         return []
-    if all([item.isdigit() for item in list(data.keys())]):
+    if all([isinstance(item, dict) for item in list(data.values())]):
         return data.values()
     return [data]
 
