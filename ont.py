@@ -167,7 +167,7 @@ def read_output(channel: Channel):
                 sleep(0.05)
         # if no new data more than 1 seconds and output is not empty
         if time() - last_data_time > 1 and len(output.strip().strip('\n').splitlines()) > 3:
-            print('no new data more than 1 seconds')
+            # print('no new data more than 1 seconds')
             break
         # if no new data more than 8 seconds and output is empty
         if time() - last_data_time > 8 and len(output.strip().strip('\n').splitlines()) <= 3:
@@ -178,7 +178,6 @@ def read_output(channel: Channel):
     return '\n'.join(output.splitlines()[1:])
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
-    print(raw)
     def _parse_value(value: str) -> str | float | int | bool | None:
         value = value.strip()
         value = split(r"\+06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
