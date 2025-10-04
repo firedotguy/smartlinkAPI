@@ -282,8 +282,8 @@ def parse_basic_info(raw: str) -> dict:
             'minutes': int(uptime.group(3)),
             'seconds': int(uptime.group(4))
         } if uptime else None,
-        '_catv_ports': [item for item in ports_table if item.get('Port-type') == 'CATV'][0].get('Port-number') if ports_table else None,
-        '_eth_ports': [item for item in ports_table if item.get('Port-type') == 'ETH'][0].get('Port-number') if ports_table else None
+        '_catv_ports': next((item.get('Port-number') for item in ports_table or [] if item.get('Port-type') == 'CATV'), None),
+        '_eth_ports': next((item.get('Port-number') for item in ports_table or [] if item.get('Port-type') == 'ETH'), None)
     }
 
 def parse_optical_info(raw: str) -> dict:
