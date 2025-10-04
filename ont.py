@@ -252,7 +252,7 @@ def parse_basic_info(raw: str) -> dict:
         uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
         uptime = None
-    ports_table = [table for table in tables if print(set(table[0].keys()), ('Max-adaptive-number', 'Port-number', 'Port-type'), ('Max-adaptive-number', 'Port-number', 'Port-type') == set(table[0].keys()))]#('Max-adaptive-number', 'Port-number', 'Port-type') == set(table[0].keys())]
+    ports_table = [table for table in tables if {'Port-number', 'Max-adaptive-number', 'Port-type'} == set(table[0].keys())]
     if ports_table:
         ports_table = ports_table[0]
     else:
