@@ -57,6 +57,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
         sleep(2)
         parsed_ont_info = parse_basic_info(read_output(channel))
+        print(2)
 
         if 'error' in parsed_ont_info:
             return {'status': 'offline', 'detail': parsed_ont_info['error']}, olt_name
@@ -68,9 +69,11 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
         sleep(0.1)
+        print(3)
         if ont_info['status'] != 'offline':
             optical_info = parse_optical_info(read_output(channel))
             ont_info['optical'] = optical_info
+        print(4)
 
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] + 1) or 3):
@@ -177,7 +180,6 @@ def read_output(channel: Channel):
     return output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
-    print(raw)
     def _parse_value(value: str) -> str | float | int | bool | None:
         value = value.strip()
         value = split(r"06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
@@ -238,7 +240,7 @@ def parse_basic_info(output: str) -> dict:
         uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
         uptime = None
-    print(data, tables)
+    print(1)
     ports_table = [table for table in tables if table and table[0].keys() == ('Max-adaptive-number', 'Port-number', 'Port-type')]
     if ports_table:
         ports_table = ports_table[0]
@@ -340,11 +342,8 @@ def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, No
 
     return online, offline, onts
 
-def ping(ip: None | str) -> None | str:
+def ping(ip: str) -> None | str:
     """Ping ONT by IP"""
-    if not ip or ip in ['-', 'N/A', '']:
-        return None
-
     try:
         result = run(['ping', '-c', '1', '-W', '300', ip], capture_output=True, text=True, timeout=1)
 
