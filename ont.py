@@ -224,7 +224,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             tables[-1].append({key: _parse_value(value) for key, value in zip(table_fields, split(r'\s+', line))})
             continue
 
-        if len(split(r'\s{2,}', line)) > 1: # table begin
+        if not is_table and len(split(r'\s{2,}', line)) > 1: # table begin
             is_table = True
             is_table_heading = True
             table_fields = [c for c in split(r'\s+', line.strip()) if c]
