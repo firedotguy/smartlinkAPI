@@ -33,11 +33,16 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
         allow_agent=False)
 
     channel = ssh.invoke_shell()
-    sleep(0.3)
+    sleep(0.2)
     clear_buffer(channel)
+
     channel.send(b"enable\n")
-    sleep(0.1)
+    sleep(0.05)
     olt_name = read_output(channel).splitlines()[-1].strip().rstrip('#')
+    clear_buffer(channel)
+
+    channel.send(b"config\n")
+    sleep(0.05)
     clear_buffer(channel)
     return channel, ssh, olt_name
 
@@ -50,17 +55,12 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        sleep(1)
-
+        sleep(2)
         parsed_ont_info = parse_basic_info(read_output(channel))
 
         if 'error' in parsed_ont_info:
             return {'status': 'offline', 'detail': parsed_ont_info['error']}, olt_name
         ont_info = parsed_ont_info
-
-        channel.send(b"config\n")
-        sleep(0.05)
-        clear_buffer(channel)
 
         channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
         sleep(0.1)
@@ -96,7 +96,6 @@ def get_ont_summary(host: str, interface: dict) -> dict:
     """get all onts from port"""
     try:
         channel, ssh, _ = connect_ssh(host)
-        channel.send(b"config\n")
 
         channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
         sleep(0.1)
@@ -122,7 +121,6 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
     """Restart/reset ONT"""
     try:
         channel, ssh, _ = connect_ssh(host)
-        channel.send(b"config\n")
 
         channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
         sleep(0.1)
