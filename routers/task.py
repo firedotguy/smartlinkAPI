@@ -65,7 +65,7 @@ def api_get_task(id: int, get_employee_names: bool = True):
             },
             'author': {
                 'id': task['author_employee_id'],
-                'name': (api_call('employee', 'get_data', f'id={task['author_employee_id']}')
+                'name': (api_call('employee', 'get_data', f'id={task["author_employee_id"]}')
                     .get('data', {}).get(str(task['author_employee_id']), {}).get('name')
                     if get_employee_names else None)
             },
