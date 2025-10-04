@@ -239,11 +239,12 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
 
     return fields, tables
 
-def parse_basic_info(output: str) -> dict:
+def parse_basic_info(raw: str) -> dict:
     """Parse basic ONT info"""
-    if 'The required ONT does not exist' in output:
-        return {'error': 'ONT не найден'}
-    data, tables = _parse_output(output)
+    print(raw)
+    if 'The required ONT does not exist' in raw:
+        raise ValueError('ONT not found')
+    data, tables = _parse_output(raw)
     if 'ONT online duration' in data:
         uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
     else:
@@ -253,7 +254,6 @@ def parse_basic_info(output: str) -> dict:
         ports_table = ports_table[0]
     else:
         ports_table = None
-    print(tables, ports_table, [item for item in ports_table if item.get('Port-type') == 'CATV'][0] if ports_table else None)
     return {
         'interface': {
             'name': data['F/S/P'],
@@ -281,9 +281,10 @@ def parse_basic_info(output: str) -> dict:
         '_eth_ports': [item for item in ports_table if item.get('Port-type') == 'ETH'][0] if ports_table else None
     }
 
-def parse_optical_info(output) -> dict:
+def parse_optical_info(raw: str) -> dict:
     """Parse ONT optical info"""
-    data, _ = _parse_output(output)
+    print(raw)
+    data, _ = _parse_output(raw)
 
     return {
         'rx': data.get('Rx optical power(dBm)'),
@@ -301,9 +302,9 @@ def parse_optical_info(output) -> dict:
         }
     }
 
-def parse_catv_status(output: str) -> bool:
+def parse_catv_status(raw: str) -> bool:
     """Parse ONT CATV status"""
-    _, tables = _parse_output(output)
+    _, tables = _parse_output(raw)
     print(tables[0][0])
     return tables[0][0].get('switch') or tables[0][0].get('Port') or False
 
