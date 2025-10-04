@@ -73,7 +73,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
             ont_info['optical'] = optical_info
 
         catv_results = []
-        for port_num in [1, 2]:
+        for port_num in range(1, (ont_info['_catv_ports'] + 1) or 3):
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
             sleep(0.1)
             catv = parse_catv_status(read_output(channel))
