@@ -90,7 +90,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         return ont_info, olt_name
     except Exception as e:
         print(f'error search ont: {e.__class__.__name__}: {e}')
-        return {'status': 'offline', 'detail': str(e)}, olt_name
+        return {'online': False, 'detail': str(e)}, olt_name
 
 def get_ont_summary(host: str, interface: dict) -> dict:
     """get all onts from port"""
@@ -244,7 +244,7 @@ def parse_basic_info(output: str) -> dict:
         ports_table = ports_table[0]
     else:
         ports_table = None
-
+    print(data)
     return {
         'interface': {
             'name': data['F/S/P'],
@@ -253,7 +253,7 @@ def parse_basic_info(output: str) -> dict:
             'port': int(data['F/S/P'].split('/')[2])
         },
         'ont_id': data.get('ONT-ID'),
-        'status': data.get('Run state', 'unknown'),
+        'online': data.get('Run state', False),
         'mem_load': data.get('Memory occupation'),
         'cpu_load': data.get('CPU occupation'),
         'temp': data['Temperature'],
