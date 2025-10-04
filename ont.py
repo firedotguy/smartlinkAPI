@@ -60,6 +60,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
             return {'status': 'offline', 'detail': parsed_ont_info['error']}, olt_name
         ont_info = parsed_ont_info
 
+        sleep(0.02)
         channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
         sleep(0.1)
         clear_buffer(channel)
@@ -71,6 +72,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
+            sleep(0.02)
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
             catv = parse_catv_status(read_output(channel))
             catv_results.append(catv)
