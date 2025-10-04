@@ -241,7 +241,6 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
 
 def parse_basic_info(raw: str) -> dict:
     """Parse basic ONT info"""
-    print(raw)
     if 'The required ONT does not exist' in raw:
         raise ValueError('ONT not found')
     data, tables = _parse_output(raw)
@@ -254,6 +253,7 @@ def parse_basic_info(raw: str) -> dict:
         ports_table = ports_table[0]
     else:
         ports_table = None
+    print(tables)
     print(ports_table)
     return {
         'interface': {
@@ -284,7 +284,6 @@ def parse_basic_info(raw: str) -> dict:
 
 def parse_optical_info(raw: str) -> dict:
     """Parse ONT optical info"""
-    print(raw)
     data, _ = _parse_output(raw)
 
     return {
@@ -307,7 +306,6 @@ def parse_optical_info(raw: str) -> dict:
 def parse_catv_status(raw: str) -> bool:
     """Parse ONT CATV status"""
     _, tables = _parse_output(raw)
-    print(tables[0][0])
     return tables[0][0].get('switch') or tables[0][0].get('Port') or False
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
