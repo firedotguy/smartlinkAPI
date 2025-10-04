@@ -84,7 +84,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel.close()
         ssh.close()
 
-        ping_result = ping(ont_info['ip'].split('/')[0] if ont_info.get('ip') else None)
+        ping_result = ping(ont_info['ip']) if 'ip' in ont_info else None
 
         ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
         return ont_info, olt_name
