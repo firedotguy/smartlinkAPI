@@ -54,7 +54,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        sleep(2.4)
+        sleep(2)
         parsed_ont_info = parse_basic_info(read_output(channel))
 
         if 'error' in parsed_ont_info:
@@ -167,15 +167,15 @@ def read_output(channel: Channel):
                 if data.strip().endswith('#'):
                     break
                 sleep(0.05)
-        else:
-            # if no data more than 1 seconds
-            if time() - last_data_time > 1:
-                break
+        # if no data more than 1 seconds and output is not empty
+        if time() - last_data_time > 1 and output:
+            break
         sleep(0.01)
 
     return output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
+    print(raw)
     def _parse_value(value: str) -> str | float | int | bool | None:
         value = value.strip()
         value = split(r"\+06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
@@ -257,8 +257,6 @@ def parse_basic_info(raw: str) -> dict:
         ports_table = ports_table[0]
     else:
         ports_table = None
-    print(tables)
-    print(ports_table)
     return {
         'interface': {
             'name': data['F/S/P'],
