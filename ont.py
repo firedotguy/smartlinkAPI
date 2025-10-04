@@ -42,7 +42,7 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
     clear_buffer(channel)
 
     channel.send(b"config\n")
-    sleep(0.05)
+    sleep(0.1)
     clear_buffer(channel)
     return channel, ssh, olt_name
 
