@@ -156,7 +156,7 @@ def read_output(channel: Channel):
         if ready:
             data = channel.recv(32768).decode('utf-8', errors='ignore')
             if data:
-                output += split(r'.+#.+', data)[-1]
+                output += data
                 last_data_time = time()
                 # pagination
                 if PAGINATION in data:
@@ -168,15 +168,16 @@ def read_output(channel: Channel):
                     break
                 sleep(0.05)
         # if no new data more than 1 seconds and output is not empty
-        if time() - last_data_time > 1 and output:
+        if time() - last_data_time > 1 and len(output.splitlines()) > 1:
+            print('no new data more than 1 seconds')
             break
         # if no new data more than 5 seconds and output is empty
-        if time() - last_data_time > 5 and not output:
+        if time() - last_data_time > 5 and not len(output.splitlines()) < 2:
             print('warn: no new data more than 5 seconds')
             break
         sleep(0.01)
 
-    return output
+    return '\n'.join(output.splitlines()[1:])
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     print(raw)
