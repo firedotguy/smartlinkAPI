@@ -242,7 +242,7 @@ def parse_basic_info(output: str) -> dict:
         ports_table = ports_table[0]
     else:
         ports_table = None
-    print(ports_table, [item for item in ports_table if item.get('Port-type') == 'CATV'][0] if ports_table else None)
+    print(tables, ports_table, [item for item in ports_table if item.get('Port-type') == 'CATV'][0] if ports_table else None)
     return {
         'interface': {
             'name': data['F/S/P'],
@@ -293,7 +293,8 @@ def parse_optical_info(output) -> dict:
 def parse_catv_status(output: str) -> bool:
     """Parse ONT CATV status"""
     _, tables = _parse_output(output)
-    return tables[0][0]['switch']
+    print(tables[0][0])
+    return tables[0][0].get('switch', False)
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
