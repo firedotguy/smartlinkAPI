@@ -203,7 +203,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         line = line.strip() # remove whitespaces
 
         if fullmatch(r'\-{5,}', line):
-            if table_fields[-1]:
+            if is_table and tables and tables[-1]:
                 is_table = False
             continue
 
@@ -217,6 +217,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             continue
 
         if is_table: # table field
+            assert tables
             tables[-1].append({key: _parse_value(value) for key, value in zip(table_fields, split(r'\s+', line))})
             continue
 
