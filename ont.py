@@ -179,6 +179,7 @@ def read_output(channel: Channel):
     return output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
+    print(raw)
     def _parse_value(value: str) -> str | float | int | bool | None:
         value = value.strip()
         value = split(r"06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
