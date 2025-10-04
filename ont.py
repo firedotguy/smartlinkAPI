@@ -196,13 +196,16 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     fields = {}
     tables = []
     is_table = False
+    is_table_heading = True
     table_fields = []
 
     for line in raw.splitlines()[1:-1]: # cut promprt lines
         line = line.strip() # remove whitespaces
 
         if fullmatch(r'\-{5,}', line):
-            if is_table and tables and tables[-1]:
+            if is_table_heading:
+                is_table_heading = False
+            if is_table and not is_table_heading:
                 is_table = False
             continue
 
@@ -215,13 +218,14 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             fields[pair[0]] = _parse_value(pair[1])
             continue
 
-        if is_table: # table field
+        if is_table and not is_table_heading: # table field
             assert tables
             tables[-1].append({key: _parse_value(value) for key, value in zip(table_fields, split(r'\s+', line))})
             continue
 
         if len(split(r'\s{2,}', line)) > 1: # table begin
             is_table = True
+            is_table_heading = True
             table_fields = [c for c in split(r'\s+', line.strip()) if c]
             tables.append([])
             continue
