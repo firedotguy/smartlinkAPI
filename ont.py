@@ -50,7 +50,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        sleep(0.5)
+        sleep(1)
 
         parsed_ont_info = parse_basic_info(read_output(channel))
 
