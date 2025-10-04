@@ -196,7 +196,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     fields = {}
     tables = []
     is_table = False
-    is_table_heading = True
+    is_table_heading = False
     table_fields = []
 
     for line in raw.splitlines()[1:-1]: # cut promprt lines
@@ -205,6 +205,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         if fullmatch(r'\-{5,}', line):
             if is_table_heading:
                 is_table_heading = False
+                continue
             if is_table and not is_table_heading:
                 is_table = False
             continue
