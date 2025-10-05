@@ -239,7 +239,6 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             continue
 
         if is_table and not is_table_heading: # table field line
-            print(table_fields, split(r'\s+', line.strip()))
             tables[-1].append({key: _parse_value(value.strip()) for key, value in zip(table_fields, split(r'\s+', line.strip()))})
             continue
 
