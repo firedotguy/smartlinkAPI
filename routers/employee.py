@@ -8,7 +8,7 @@ router = APIRouter(prefix='/employee')
 
 @router.get('/login')
 def api_get_employee_login(login: str, password: str):
-    result = 'status' in api_call('employee', 'check_pass', f'login={login}&pass={password}')
+    result = 'result' in api_call('employee', 'check_pass', f'login={login}&pass={password}')
     return {
         'status': 'success',
         'correct': result,

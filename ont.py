@@ -170,11 +170,12 @@ def read_output(channel: Channel):
 
                 # command completed ("user#" input in data)
                 if output.strip().endswith('#'):
+                    print('command completed')
                     break
                 sleep(0.05)
         # if no new data more than 1.5 seconds and output is not empty
         if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
-            # print('no new data more than 1.5 seconds')
+            print('no new data more than 1.5 seconds')
             break
         # if no new data more than 8 seconds and output is empty
         if time() - last_data_time > 8 and len(output.strip().strip('\n').splitlines()) <= 5:
