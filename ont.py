@@ -2,7 +2,7 @@
 from time import sleep, time
 from select import select
 from subprocess import run
-from re import search, fullmatch, split
+from re import search, fullmatch, split, match
 
 from paramiko import SSHClient, AutoAddPolicy, Channel
 from config import SSH_USER, SSH_PASSWORD
@@ -193,19 +193,27 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             return False
         return value
 
+    def _find_all(string: str, finding: str) -> list[int]:
+        result = []
+        for i, _ in enumerate(string):
+            if string[i:i + len(finding)] == finding:
+                result.append(i)
+        return result
+
     fields = {}
     tables = []
     is_table = False
     is_table_heading = False
+    table_heading_raw = ''
     is_notes = False
     table_fields = []
 
     raw = raw.replace(PAGINATION, '').replace('\x1b[37D', '').replace('x1b[37D', '') # remove stupid pagination
+    for line in raw.splitlines():
+        if '#' in line: # prompt lines
+            continue
 
-    for line in raw.splitlines()[1:-1]: # cut prompt lines
-        line = line.strip() # remove whitespaces
-
-        if fullmatch(r'\-{5,}', line): # divider line
+        if fullmatch(r'\s*\-{5,}\s*', line.strip()): # divider line
             is_notes = False
             if is_table_heading:
                 is_table_heading = False
@@ -220,27 +228,53 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         # if PAGINATION in line: # partially-pagination line
         #     line = line.strip(PAGINATION).strip('\x1b[37D').strip('x1b[37D')
 
-        if line.startswith('Notes:') or is_notes: # notes line
+        if line.strip().startswith('Notes:') or is_notes: # notes line
             is_notes = True
             continue
 
         if ':' in line: # standalone field line
             is_table = False
-            pair = list(map(lambda i: i.strip(), line.split(':', maxsplit=1)))
+            pair = list(map(lambda i: i.strip(), line.strip().split(':', maxsplit=1)))
             fields[pair[0]] = _parse_value(pair[1])
             continue
 
         if is_table and not is_table_heading: # table field line
-            assert tables
-            tables[-1].append({key: _parse_value(value) for key, value in zip(table_fields, split(r'\s+', line))})
+            print(table_fields, split(r'\s+', line.strip()))
+            tables[-1].append({key: _parse_value(value.strip()) for key, value in zip(table_fields, split(r'\s+', line.strip()))})
             continue
 
-        if not is_table and len(split(r'\s+', line)) > 1: # table heading line
+        if not is_table and len(split(r'\s+', line)) > 1: # table start heading line
             is_table = True
             is_table_heading = True
+            table_heading_raw = line
             table_fields = [c for c in split(r'\s+', line.strip()) if c]
             tables.append([])
             continue
+
+        if is_table_heading: # table next heading line
+            line = line[len(table_heading_raw) - len(table_heading_raw.lstrip()):]
+            full_line = line
+            # print('begin table parse; fields:', table_fields, 'appendixes line:', line)
+
+            for i, field in enumerate(table_fields):
+                raw_index = _find_all(table_heading_raw.lstrip(), field)[table_fields[:i].count(field)]
+                # print('found fields:', _find_all(table_heading_raw.lstrip(), field))
+
+                if search(r'\w', full_line[raw_index:raw_index + len(field)]):
+                    # print('found non space appendix:', full_line[raw_index:raw_index + len(field)] + '... for', field)
+                    appendix = line.lstrip().split(' ', maxsplit=1)[0]
+                    # print('cleaned appendix:', appendix)
+                    table_fields[i] += '-' + appendix
+                    # print('invoked to field:', table_fields[i])
+                    line = line[line.index(appendix) + len(appendix):]
+                    # print('line truncated:', line)
+
+                else:
+                    # print('found space appendix for', field)
+                    _find_all(table_heading_raw, field)[table_fields[:i].count(field)]
+                    # spaces += len(table_heading_raw[:raw_index]) - len(table_heading_raw[:raw_index].rstrip()) - 1
+                    line = line[len(field):]
+                    # print('line truncated:', line)
 
     return fields, [table for table in tables if table]
 
