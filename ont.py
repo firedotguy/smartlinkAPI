@@ -172,12 +172,12 @@ def read_output(channel: Channel):
                 if output.strip().endswith('#'):
                     break
                 sleep(0.05)
-        # if no new data more than 1 seconds and output is not empty
-        if time() - last_data_time > 1 and len(output.strip().strip('\n').splitlines()) > 3:
-            # print('no new data more than 1 seconds')
+        # if no new data more than 1.5 seconds and output is not empty
+        if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
+            # print('no new data more than 1.5 seconds')
             break
         # if no new data more than 8 seconds and output is empty
-        if time() - last_data_time > 8 and len(output.strip().strip('\n').splitlines()) <= 3:
+        if time() - last_data_time > 8 and len(output.strip().strip('\n').splitlines()) <= 5:
             print('warn: no new data more than 8 seconds')
             break
         sleep(0.01)
