@@ -73,10 +73,18 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
             sleep(0.07)
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
-            catv = parse_catv_status(read_output(channel))
+            catv = parse_port_status(read_output(channel))
             catv_results.append(catv)
 
+        eth_results = []
+        for port_num in range(1, (ont_info['_eth_ports'] or 2) + 1):
+            sleep(0.07)
+            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} eth {port_num}\n", 'utf-8'))
+            eth = parse_port_status(read_output(channel))
+            eth_results.append(eth)
+
         ont_info['catv'] = catv_results
+        ont_info['eth'] = eth_results
 
         channel.close()
         ssh.close()
@@ -339,10 +347,11 @@ def parse_optical_info(raw: str) -> dict:
         }
     }
 
-def parse_catv_status(raw: str) -> bool:
-    """Parse ONT CATV status"""
+def parse_port_status(raw: str) -> bool:
+    """Parse ONT port status"""
     _, tables = _parse_output(raw)
-    return tables[0][0].get('switch') or tables[0][0].get('Port') or False
+    return tables[0][0].get('Port-switch') or tables[0][0].get('switch') or tables[0][0].get('Port') or False
+
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
