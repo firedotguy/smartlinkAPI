@@ -33,7 +33,7 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
 
     channel.send(b"enable\n")
     sleep(0.05)
-    olt_name = read_output(channel).splitlines()[-1].strip().rstrip('#')
+    olt_name = read_output(channel, False).splitlines()[-1].strip().rstrip('#')
     clear_buffer(channel)
 
     channel.send(b"config\n")
@@ -145,7 +145,7 @@ def clear_buffer(channel: Channel):
     if channel.recv_ready():
         channel.recv(32768)
 
-def read_output(channel: Channel):
+def read_output(channel: Channel, force: bool = True):
     """Read console output"""
     output = ""
     last_data_time = time()
@@ -163,17 +163,18 @@ def read_output(channel: Channel):
                     continue
 
                 # command completed ("user#" input in data)
-                if output.strip().endswith('#') and len(output.strip().strip('\n').splitlines()) > 5:
+                if output.strip().endswith('#') and (len(output.strip().strip('\n').splitlines()) > 5 or not force):
                     print('command completed')
                     break
                 sleep(0.05)
         # if no new data more than 1.5 seconds and output is not empty
-        if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
-            print('no new data more than 1.5 seconds')
-            break
-        # if no new data more than 8 seconds and output is empty
-        if time() - last_data_time > 8 and len(output.strip().strip('\n').splitlines()) <= 5:
-            print('warn: no new data more than 8 seconds')
+        # if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
+        #     print('no new data more than 1.5 seconds')
+        #     break
+        # if no new data more than 15 seconds and output is empty
+        if time() - last_data_time > 15 and len(output.strip().strip('\n').splitlines()) <= 4:
+            print('warn: no new data more than 15 seconds')
+            print(output)
             break
         sleep(0.01)
 
