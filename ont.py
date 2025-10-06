@@ -182,7 +182,7 @@ def read_output(channel: Channel):
             break
         sleep(0.01)
 
-    return '\n'.join(output.splitlines()[1:])
+    return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else ''
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     def _parse_value(value: str) -> str | float | int | bool | None:
@@ -247,7 +247,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         if ':' in line: # standalone field line
             is_table = False
             pair = list(map(lambda i: i.strip(), line.strip().split(':', maxsplit=1)))
-            fields[pair[0]] = _parse_value(pair[1])
+            fields[pair[0]] = _parse_value(pair[-1])
             continue
 
         if is_table and not is_table_heading: # table field line
@@ -282,7 +282,6 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
 
                 else:
                     # print('found space appendix for', field)
-                    _find_all(table_heading_raw, field)[table_fields[:i].count(field)]
                     # spaces += len(table_heading_raw[:raw_index]) - len(table_heading_raw[:raw_index].rstrip()) - 1
                     line = line[len(field):]
                     # print('line truncated:', line)
