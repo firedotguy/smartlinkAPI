@@ -71,11 +71,8 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
             catv = parse_port_status(read_output(channel))
             catv_results.append(catv)
 
-        eth_results = []
-
         channel.send(bytes(f"display ont port state {ont_info['interface']['port']} {ont_info['ont_id']} eth-port all\n", 'utf-8'))
-        eth = parse_eth_ports_status(read_output(channel))
-        eth_results.append(eth)
+        eth_results = parse_eth_ports_status(read_output(channel))
 
         ont_info['catv'] = catv_results
         ont_info['eth'] = eth_results
