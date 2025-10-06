@@ -205,8 +205,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         result = []
         for i, _ in enumerate(string):
             if string[i:i + len(finding)] == finding:
-                if len(string) >= i + len(finding):
-                    print(string[i + len(finding)])
+                if len(string) > i + len(finding):
                     if string[i + len(finding)] == ' ':
                         result.append(i)
                 else:
