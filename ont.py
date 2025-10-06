@@ -77,11 +77,10 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
             catv_results.append(catv)
 
         eth_results = []
-        for port_num in range(1, (ont_info['_eth_ports'] or 2) + 1):
-            sleep(0.07)
-            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} eth {port_num}\n", 'utf-8'))
-            eth = parse_port_status(read_output(channel))
-            eth_results.append(eth)
+
+        channel.send(bytes(f"display ont port state {ont_info['interface']['port']} {ont_info['ont_id']} eth-port all\n", 'utf-8'))
+        eth = parse_eth_ports_status(read_output(channel))
+        eth_results.append(eth)
 
         ont_info['catv'] = catv_results
         ont_info['eth'] = eth_results
@@ -353,6 +352,10 @@ def parse_port_status(raw: str) -> bool:
     _, tables = _parse_output(raw)
     return tables[0][0].get('Port-switch') or tables[0][0].get('switch') or tables[0][0].get('Port') or False
 
+def parse_eth_ports_status(raw: str) -> list[dict]:
+    """Parse ONT eth ports status"""
+    _, tables = _parse_output(raw)
+    return [{'id': table.get('ONT-port-id'), 'status': table.get('LinkState') or False, 'speed': table.get('Speed-(Mbps)')} for table in tables[0]]
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
