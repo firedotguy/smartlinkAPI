@@ -195,9 +195,9 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             return float(value.replace(',', '.'))
         if fullmatch(r'[+-]?\d+', value):
             return int(value)
-        if value.lower() in ('online', 'enable', 'support', 'concern', 'on'):
+        if value.lower() in ('online', 'enable', 'support', 'concern', 'on', 'up'):
             return True
-        if value.lower() in ('offline', 'disable', 'not support', 'unconcern', 'off'):
+        if value.lower() in ('offline', 'disable', 'not support', 'unconcern', 'off', 'down'):
             return False
         return value
 
