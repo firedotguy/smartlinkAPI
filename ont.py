@@ -355,7 +355,7 @@ def parse_port_status(raw: str) -> bool:
 def parse_eth_ports_status(raw: str) -> list[dict]:
     """Parse ONT eth ports status"""
     _, tables = _parse_output(raw)
-    return [{'id': table.get('ONT-port-id'), 'status': table.get('LinkState') or False, 'speed': table.get('Speed-(Mbps)')} for table in tables[0]]
+    return [{'id': table.get('ONT-port-ID'), 'status': table.get('LinkState') or False, 'speed': table.get('Speed-(Mbps)')} for table in tables[0]]
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
