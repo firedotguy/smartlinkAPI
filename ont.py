@@ -12,15 +12,10 @@ AUTH_TIMEOUT = 5
 BANNER_TIMEOUT = 3
 
 PAGINATION = "---- More ( Press 'Q' to break ) ----"
-PAGINATION_WITH_SPACES = "---- More ( Press 'Q' to break ) ----\x1b[37D                                   \
-\x1b[37D  "
+PAGINATION_WITH_SPACES = "---- More ( Press 'Q' to break ) ----\x1b[37D                                   \x1b[37D  "
 DIVIDER = '-' * 78
-RE_ONT_SUMMARY_TOTAL = r'^In port \d*/\d*/\d*, the total of ONTs are: (\d*), online: (\d*)$'
-RE_ONT_SUMMARY_DATA1 = r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\
-\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$'
-RE_ONT_SUMMARY_DATA2 = r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+)\
-.*$'
-RE_ONT_SEARCH_ONLINE = r'^(\d*) day\(s\), (\d*) hour\(s\), (\d*) minute\(s\), (\d*) second'
+# RE_ONT_SUMMARY_DATA1 = r'^(\d*)\s*(online|offline)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*((?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|-)\s*(.*?)(?:\s*)$'
+# RE_ONT_SUMMARY_DATA2 = r'^(\d*)\s*([A-Z0-9]+)\s*([A-Z0-9\-]+)\s*(-|\d*)\s*([0-9\-.]+)\/([0-9\-.]+).*$'
 
 # sequence: fibre -> service -> port -> ont
 
@@ -293,8 +288,8 @@ def parse_basic_info(raw: str) -> dict:
     if 'The required ONT does not exist' in raw:
         raise ValueError('ONT not found')
     data, tables = _parse_output(raw)
-    if 'ONT online duration' in data:
-        uptime = fullmatch(RE_ONT_SEARCH_ONLINE, data['ONT online duration'])
+    if data.get('ONT online duration'):
+        uptime = fullmatch(r'^(\d*) day\(s\), (\d*) hour\(s\), (\d*) minute\(s\), (\d*) second', data['ONT online duration'])
     else:
         uptime = None
     ports_table = [table for table in tables if {'Port-number', 'Max-adaptive-number', 'Port-type'} == set(table[0].keys())]
@@ -366,7 +361,7 @@ def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, No
     if len(out) < 2:
         return {"status": "fail", "detail": "not enough sections"}, None, None
 
-    total = fullmatch(RE_ONT_SUMMARY_TOTAL, out[1])
+    total = fullmatch(r'^In port \d*/\d*/\d*, the total of ONTs are: (\d*), online: (\d*)$', out[1])
     if total is None:
         print("error summary ont: total regexp fail")
         return {"status": "fail", "detail": "total regexp fail"}, None, None
