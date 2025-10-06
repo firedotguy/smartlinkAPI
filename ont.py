@@ -205,7 +205,11 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         result = []
         for i, _ in enumerate(string):
             if string[i:i + len(finding)] == finding:
-                result.append(i)
+                if len(string) >= i + len(finding) + 1:
+                    if string[i + len(finding) + 1] == ' ':
+                        result.append(i)
+                else:
+                    result.append(i)
         return result
 
     fields = {}
