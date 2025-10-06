@@ -163,7 +163,7 @@ def read_output(channel: Channel):
                     continue
 
                 # command completed ("user#" input in data)
-                if output.strip().endswith('#'):
+                if output.strip().endswith('#') and len(output.strip().strip('\n').splitlines()) > 5:
                     print('command completed')
                     break
                 sleep(0.05)
