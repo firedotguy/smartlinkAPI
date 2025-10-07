@@ -125,6 +125,7 @@ def toggle_catv(host: str, id: int, catv_id: int, state: bool, interface: dict) 
         sleep(0.1)
         clear_buffer(channel)
 
+        print(f'ont port attribute {interface["port"]} {id} catv {catv_id} operational-state {"on" if state else "off"}\n')
         channel.send(bytes(f'ont port attribute {interface["port"]} {id} catv {catv_id} operational-state {"on" if state else "off"}\n', 'utf-8'))
         output = read_output(channel, False)
         if 'Failure: Make configuration repeatedly' in output:
