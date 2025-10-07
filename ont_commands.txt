@@ -247,11 +247,11 @@ JBI-Grand(config-if-gpon-0/1)#display ont port attribute PORT ONT_ID eth ETH_ID
   ----------------------------------------------------------------------------
 
 
-# change ont catv port operational state (already changed)
+# toggle ont catv port state (CATV port is already in the requested state)
 JBI-Grand(config-if-gpon-0/1)#ont port attribute PORT ONT_ID catv CATV_ID operational-state on|off
   Failure: Make configuration repeatedly
 
-# change ont catv port operational state
+# toggle ont catv port state
 JBI-Grand(config-if-gpon-0/1)#ont port attribute PORT ONT_ID catv CATV_ID operational-state on|off
 
 

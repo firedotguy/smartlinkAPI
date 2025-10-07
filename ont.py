@@ -89,29 +89,6 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         print(f'error search ont: {e.__class__.__name__}: {e}')
         return {'online': False, 'detail': str(e)}, olt_name
 
-def get_ont_summary(host: str, interface: dict) -> dict:
-    """get all onts from port"""
-    try:
-        channel, ssh, _ = connect_ssh(host)
-
-        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
-        online, offline, onts = parse_onts_info(read_output((channel)))
-        if isinstance(online, dict):
-            return online # error
-
-        channel.close()
-        ssh.close()
-        return {
-            'status': 'success',
-            'online': online,
-            'offline': offline,
-            'onts': onts
-        }
-
-    except Exception as e:
-        print(f'error summary ont: {e.__class__.__name__}: {e}')
-        return {'status': 'fail', 'detail': e}
-
 
 def reset_ont(host: str, id: int, interface: dict) -> dict:
     """Restart/reset ONT"""
@@ -136,6 +113,50 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
         return {'status': 'success', 'id': id}
     except Exception as e:
         print(f'error reset ont: {e.__class__.__name__}: {e}')
+        return {'status': 'fail', 'detail': e}
+
+
+def toggle_catv(host: str, id: int, catv_id: int, state: bool, interface: dict) -> tuple[dict, int]:
+    """Toggle CATV port state"""
+    try:
+        channel, ssh, _ = connect_ssh(host)
+
+        channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
+
+        channel.send(bytes(f'ont port attribute {interface["port"]} {id} catv {catv_id} operational-state {"on" if state else "off"}', 'utf-8'))
+        if 'Failure: Make configuration repeatedly' in read_output(channel, False):
+            return {'status': 'fail', 'detail': 'CATV port is already in the requested state'}, 409
+
+        channel.close()
+        ssh.close()
+        return {'status': 'success'}, 200
+    except Exception as e:
+        print(f'error toggle catv: {e.__class__.__name__}: {e}')
+        return {'status': 'fail', 'detail': e}, 500
+
+def get_ont_summary(host: str, interface: dict) -> dict:
+    """get all onts from port"""
+    try:
+        channel, ssh, _ = connect_ssh(host)
+
+        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
+        online, offline, onts = parse_onts_info(read_output((channel)))
+        if isinstance(online, dict):
+            return online # error
+
+        channel.close()
+        ssh.close()
+        return {
+            'status': 'success',
+            'online': online,
+            'offline': offline,
+            'onts': onts
+        }
+
+    except Exception as e:
+        print(f'error summary ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
 
 def clear_buffer(channel: Channel):
