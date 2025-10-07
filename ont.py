@@ -191,6 +191,9 @@ def read_output(channel: Channel, force: bool = True):
         if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
             print('no new data more than 1.5 seconds')
             break
+        if time() - last_data_time > 3 and not force:
+            print('no new data for 3 seconds')
+            break
         if time() - last_data_time > 10 and len(output.strip().strip('\n').splitlines()) <= 5:
             print('no new data more than 10 seconds')
             print(output)
