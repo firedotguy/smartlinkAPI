@@ -165,40 +165,51 @@ def clear_buffer(channel: Channel):
         channel.recv(32768)
 
 
-def read_output(channel: Channel, force: bool = True, hard_timeout: float = 20.0):
+def read_output(channel: Channel, force: bool = True):
     output = ""
-    start_time = last_data_time = time()
+    last_data_time = time()
+
+    def nonempty_lines(txt: str) -> list[str]:
+        return [ln for ln in txt.splitlines() if ln.strip()]
 
     while True:
         ready, _, _ = select([channel], [], [], 0.05)
         if ready:
-            data = channel.recv(32768).decode('utf-8', errors='ignore')
-            if data:
-                output += data
+            chunk = channel.recv(32768).decode('utf-8', errors='ignore')
+            if chunk:
+                output += chunk
                 last_data_time = time()
 
-                # pagination
-                if PAGINATION in data:
+                # пагинация
+                if PAGINATION in chunk:
                     channel.send(b" ")
                     continue
 
-                if search(r'(?:^|\n)[^\n]*(?:#|>)\s*$', output):
-                    if not force or output.count('\n') >= 1:
-                        print('command completed')
+                lines = nonempty_lines(output)
+                last = lines[-1] if lines else ""
+
+                # выход по промпту '#'
+                if last.endswith('#'):
+                    if force or len(lines) >= 5:
                         break
 
-        if time() - last_data_time > 2.0 and output.strip():
-            print('idle timeout')
-            break
-
-        if time() - start_time > hard_timeout:
-            print('hard timeout')
-            break
+        # таймауты тишины
+        silent_for = time() - last_data_time
+        if force:
+            if silent_for > 3.0:
+                break
+        else:
+            lines = nonempty_lines(output)
+            if len(lines) > 5 and silent_for > 3.0:
+                break
+            if len(lines) < 5 and silent_for > 15.0:
+                break
 
         sleep(0.01)
 
-    lines = output.splitlines()
-    return '\n'.join(lines[1:]) if len(lines) > 1 else output
+    lines_all = output.splitlines()
+    return '\n'.join(lines_all[1:]) if len(lines_all) > 1 else output
+
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     def _parse_value(value: str) -> str | float | int | bool | None:
