@@ -159,7 +159,7 @@ def api_get_customer(request: Request, id: int):
         'phones': [phone['number'] for phone in customer['phone'] if phone['number']],
         'last_activity': customer['date_activity'],
         'inventory': inventory,
-        'box_id': customer['address'][0]['house_id'],
+        'box_id': customer['address'][0]['house_id'] if customer['address'][0]['house_id'] != 0 else None,
         'geodata': geodata,
         'group': {
             'id': list(customer['group'].values())[0]['id'],
