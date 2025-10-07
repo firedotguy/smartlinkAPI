@@ -1,0 +1,273 @@
+# enable admin mode
+JBI-Grand>enable
+
+
+
+# enable config mode
+JBI-Grand#config
+
+
+
+# display ont info by sn (incorrect sn)
+JBI-Grand(config)#display ont info by-sn SN
+  The required ONT does not exist
+
+# display ont info by sn
+JBI-Grand(config)#display ont info by-sn SN
+  -----------------------------------------------------------------------------
+  F/S/P                   : 0/2/13
+  ONT-ID                  : 5
+  Control flag            : active
+  Run state               : offline
+  Config state            : initial
+  Match state             : initial
+  DBA type                : -
+  ONT distance(m)         : -
+  ONT last distance(m)    : -
+  ONT battery state       : -
+  Memory occupation       : -
+  CPU occupation          : -
+  Temperature             : -
+  Authentic type          : SN-auth
+  SN                      : 4857544319536FFC (HWTC-19536FFC)
+  Management mode         : OMCI
+  Software work mode      : normal
+  Isolation state         : normal
+  Description             : ONT_NO_DESCRIPTION
+  Last down cause         : -
+  Last up time            : -
+  Last down time          : -
+  Last dying gasp time    : -
+  ONT online duration     : -
+  Type C support          : -
+  Interoperability-mode   : Unknown
+  Power reduction status  : -
+  FEC upstream state      : use-profile-config
+  -----------------------------------------------------------------------------
+  VoIP configure method   : Default
+  -----------------------------------------------------------------------------
+  Line profile ID      : 98
+  Line profile name    : onu-router-line-HUR2102XR
+  -----------------------------------------------------------------------------
+  FEC upstream switch :Disable
+  OMCC encrypt switch :Off
+  Qos mode            :PQ
+  Mapping mode        :VLAN
+  TR069 management    :Disable
+  TR069 IP index      :0
+  -----------------------------------------------------------------------------
+  Notes: * indicates Discrete TCONT(TCONT Unbound)
+  -----------------------------------------------------------------------------
+  <T-CONT   0>          DBA Profile-ID:1
+  <T-CONT   4>          DBA Profile-ID:16
+   <Gem Index 11>
+   --------------------------------------------------------------------
+   |Serv-Type:ETH |Encrypt:off |Cascade:off |GEM-CAR:-            |
+   |Upstream-priority-queue:0  |Downstream-priority-queue:-       |
+   --------------------------------------------------------------------
+    Mapping VLAN  Priority Port    Port  Bundle  Flow  Transparent
+    index                  type    ID    ID      CAR
+   --------------------------------------------------------------------
+    0       199   -        -       -     -       -     -
+   --------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+  Notes: Run the display traffic table ip command to query
+         traffic table configuration
+  -----------------------------------------------------------------------------
+  Service profile ID   : 98
+  Service profile name : onu-router-srv-HUR2101XR
+  -----------------------------------------------------------------------------
+  Port-type     Port-number     Max-adaptive-number
+  -----------------------------------------------------------------------------
+  POTS          adaptive        32
+  ETH           2               -
+  VDSL          0               -
+  TDM           0               -
+  MOCA          0               -
+  CATV          2               -
+  -----------------------------------------------------------------------------
+  TDM port type                     : E1
+  TDM service type                  : TDMoGem
+  MAC learning function switch      : Enable
+  ONT transparent function switch   : Disable
+  Ring check switch                 : Disable
+  Ring port auto-shutdown           : Enable
+  Ring detect frequency             : 8 (pps)
+  Ring resume interval              : 300 (s)
+  Multicast forward mode            : Unconcern
+  Multicast forward VLAN            : -
+  Multicast mode                    : Unconcern
+  Upstream IGMP packet forward mode : Unconcern
+  Upstream IGMP packet forward VLAN : -
+  Upstream IGMP packet priority     : -
+  Native VLAN option                : Concern
+  Upstream PQ color policy          : -
+  Downstream PQ color policy        : -
+  -----------------------------------------------------------------------------
+  Port-type Port-ID QinQmode  PriorityPolicy Inbound     Outbound
+  -----------------------------------------------------------------------------
+  ETH       1       unconcern unconcern      unconcern   unconcern
+  ETH       2       unconcern unconcern      unconcern   unconcern
+  -----------------------------------------------------------------------------
+  Notes: * indicates the discretely configured traffic profile,
+         run the display traffic table ip command to query
+         traffic table configuration.
+  -----------------------------------------------------------------------------
+  Port-type Port-ID  DownstreamMode  MismatchPolicy
+  -----------------------------------------------------------------------------
+  ETH             1  operation       discard
+  ETH             2  operation       discard
+  -----------------------------------------------------------------------------
+  Port-type Port-ID Dscp-mapping-table-index
+  -----------------------------------------------------------------------------
+  ETH       1       0
+  ETH       2       0
+  IPHOST    1       0
+  -----------------------------------------------------------------------------
+  Port   Port   Service-type Index S-VLAN S-PRI C-VLAN C-PRI ENCAP      S-PRI
+  type   ID                                                             POLICY
+  -----------------------------------------------------------------------------
+  ETH    1      Translation  1     199    -     199    -     -          -
+  -----------------------------------------------------------------------------
+  Notes: * indicates transparent attribute of the vlan
+  -----------------------------------------------------------------------------
+  Port-type  Port-ID    IGMP-mode         IGMP-VLAN  IGMP-PRI  Max-MAC-Count
+  -----------------------------------------------------------------------------
+  ETH              1    -                         -         -      Unlimited
+  ETH              2    -                         -         -      Unlimited
+  -----------------------------------------------------------------------------
+  Alarm policy profile ID      : 0
+  Alarm policy profile name    : alarm-policy_0
+  -----------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+  The number of required ONTs     : 1
+  -----------------------------------------------------------------------------
+
+
+# switch to interface
+JBI-Grand(config)# interface gpon FIBRE/SERVICE
+
+
+#display ont optical info (incorrect port/ont id)
+JBI-Grand(config-if-gpon-0/1)#display ont optical-info PORT ONT_ID
+  Failure: The ONT does not exist
+
+#display ont optical info (ont is not online)
+JBI-Grand(config-if-gpon-0/1)#display ont optical-info PORT ONT_ID
+  Failure: The ONT is not online
+
+#display ont optical info
+JBI-Grand(config-if-gpon-0/1)#display ont optical-info PORT ONT_ID
+  -----------------------------------------------------------------------------
+  ONU NNI port ID                        : 0
+  Module type                            : GPON
+  Module sub-type                        : CLASS B+
+  Used type                              : ONU
+  Encapsulation Type                     : BOSA ON BOARD
+  Optical power precision(dBm)           : 3.0
+  Vendor name                            : HUAWEI
+  Vendor rev                             : -
+  Vendor PN                              : HW-BOB-0002
+  Vendor SN                              : 1505E1263456C
+  Date Code                              : 15-03-07
+  Rx optical power(dBm)                  : -24.68
+  Rx power current warning threshold(dBm): [-,-]
+  Rx power current alarm threshold(dBm)  : [-29.0,-7.0]
+  Tx optical power(dBm)                  : 2.05
+  Tx power current warning threshold(dBm): [-,-]
+  Tx power current alarm threshold(dBm)  : [0.0,5.0]
+  Laser bias current(mA)                 : 8
+  Tx bias current warning threshold(mA)  : [-,-]
+  Tx bias current alarm threshold(mA)    : [2.000,100.000]
+  Temperature(C)                         : 44
+  Temperature warning threshold(C)       : [-,-]
+  Temperature alarm threshold(C)         : [-61,95]
+  Voltage(V)                             : 3.220
+  Supply voltage warning threshold(V)    : [-,-]
+  Supply voltage alarm threshold(V)      : [3.000,3.600]
+  OLT Rx ONT optical power(dBm)          : -28.87
+  CATV Rx optical power(dBm)             : -
+  CATV Rx power alarm threshold(dBm)     : [-,-]
+  -----------------------------------------------------------------------------
+
+
+# display ont catv port state info (ont port does not exists)
+JBI-Grand(config-if-gpon-0/1)#display ont port state PORT ONT_ID catv-port all|ONT_PORT_ID
+  Failure: The ONT port does not
+
+# display ont catv port state info
+JBI-Grand(config-if-gpon-0/1)#display ont port state PORT ONT_ID catv-port all|ONT_PORT_ID
+  --------------------------------------------------
+  ONT-ID   ONT      ONT       LinkState  TxPower
+           port-ID  Port-type            (dBmV)
+  --------------------------------------------------
+       1         1       CATV up         -
+  --------------------------------------------------
+
+
+# display ont eth port state info (ont port does not exists)
+JBI-Grand(config-if-gpon-0/1)#display ont port state PORT ONT_ID eth-port all|ONT_PORT_ID
+  Failure: The ONT port does not
+
+# display ont eth port state info
+JBI-Grand(config-if-gpon-0/1)#display ont port state PORT ONT_ID eth-port all|ONT_PORT_ID
+  --------------------------------------------------------------------------
+  ONT-ID   ONT      ONT       Speed(Mbps)   Duplex   LinkState  RingStatus
+           port-ID  Port-type
+  --------------------------------------------------------------------------
+       1         1         GE -             -        down       -
+  --------------------------------------------------------------------------
+
+
+# display ont catv port attribute info (ont port does not exists)
+JBI-Grand(config-if-gpon-0/1)#display ont port attribute PORT ONT_ID catv CATV_ID
+  Failure: The ONT port ID does not exist
+
+# display ont catv port attribute info
+JBI-Grand(config-if-gpon-0/1)#display ont port attribute PORT ONT_ID catv CATV_ID
+  -------------------------------------------------
+  ONT  ONT      ONT        Port    Frequency
+       port-ID  port-type  switch
+  -------------------------------------------------
+    1        1  CATV       on      all-pass
+  -------------------------------------------------
+
+
+# display ont eth port attribute info (ont port does not exists)
+JBI-Grand(config-if-gpon-0/1)#display ont port attribute PORT ONT_ID eth ETH_ID
+  Failure: The ONT port ID does not exist
+
+# display ont eth port attribute info
+JBI-Grand(config-if-gpon-0/1)#display ont port attribute PORT ONT_ID eth ETH_ID
+  ----------------------------------------------------------------------------
+  ONT ONT     ONT       Auto-neg Speed  Duplex Port   Flow    Native Priority
+      port    port-type          (Mbps)        switch control VLAN
+  ----------------------------------------------------------------------------
+  1   1       ETH       enable   auto   auto   on     off     1      0
+  ----------------------------------------------------------------------------
+
+
+# change ont catv port operational state (already changed)
+JBI-Grand(config-if-gpon-0/1)#ont port attribute PORT ONT_ID catv CATV_ID operational-state on|off
+  Failure: Make configuration repeatedly
+
+# change ont catv port operational state
+JBI-Grand(config-if-gpon-0/1)#ont port attribute PORT ONT_ID catv CATV_ID operational-state on|off
+
+
+
+# reset ont (ont is offline)
+JBI-Grand(config-if-gpon-0/1)#ont reset PORT ONT_ID
+  Resetting the ONT(s) will interrupt all services on the ONT(s)
+  Are you sure to reset the ONT(s)? (y/n)[n]: y
+  Failure: The ONT is not online
+
+# reset ont (n)
+JBI-Grand(config-if-gpon-0/1)#ont reset PORT ONT_ID
+  Resetting the ONT(s) will interrupt all services on the ONT(s)
+  Are you sure to reset the ONT(s)? (y/n)[n]: n
+
+# reset ont
+  Resetting the ONT(s) will interrupt all services on the ONT(s)
+  Are you sure to reset the ONT(s)? (y/n)[n]: y
+
