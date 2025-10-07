@@ -164,8 +164,8 @@ def clear_buffer(channel: Channel):
     if channel.recv_ready():
         channel.recv(32768)
 
+
 def read_output(channel: Channel, force: bool = True, hard_timeout: float = 20.0):
-    """Read console output"""
     output = ""
     start_time = last_data_time = time()
 
@@ -177,22 +177,22 @@ def read_output(channel: Channel, force: bool = True, hard_timeout: float = 20.0
                 output += data
                 last_data_time = time()
 
+                # pagination
                 if PAGINATION in data:
                     channel.send(b" ")
                     continue
 
-                lines = [ln for ln in output.splitlines() if ln.strip() != ""]
-                last = lines[-1] if lines else ""
-                if last.endswith('#'):
-                    if not force or len(lines) >= 2:
+                if search(r'(?:^|\n)[^\n]*(?:#|>)\s*$', output):
+                    if not force or output.count('\n') >= 1:
                         print('command completed')
                         break
-        if time() - last_data_time > 2.0:
-            if output.strip():
-                break
+
+        if time() - last_data_time > 2.0 and output.strip():
+            print('idle timeout')
+            break
 
         if time() - start_time > hard_timeout:
-            print('hard timeout hit')
+            print('hard timeout')
             break
 
         sleep(0.01)
