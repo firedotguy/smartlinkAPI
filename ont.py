@@ -164,52 +164,43 @@ def clear_buffer(channel: Channel):
     if channel.recv_ready():
         channel.recv(32768)
 
-
 def read_output(channel: Channel, force: bool = True):
+    """Read console output"""
     output = ""
     last_data_time = time()
-
-    def nonempty_lines(txt: str) -> list[str]:
-        return [ln for ln in txt.splitlines() if ln.strip()]
+    start_time = time()
 
     while True:
         ready, _, _ = select([channel], [], [], 0.05)
         if ready:
-            chunk = channel.recv(32768).decode('utf-8', errors='ignore')
-            if chunk:
-                output += chunk
+            data = channel.recv(32768).decode('utf-8', errors='ignore')
+            if data:
+                output += data
                 last_data_time = time()
-
-                # пагинация
-                if PAGINATION in chunk:
+                # pagination
+                if PAGINATION in data:
                     channel.send(b" ")
                     continue
 
-                lines = nonempty_lines(output)
-                last = lines[-1] if lines else ""
+                # command completed ("user#" input in data)
+                if output.strip().endswith('#') and (len(output.strip().strip('\n').splitlines()) > 5 or not force):
+                    print('command completed')
+                    break
+                sleep(0.05)
 
-                # выход по промпту '#'
-                if last.endswith('#'):
-                    if force or len(lines) >= 5:
-                        break
-
-        # таймауты тишины
-        silent_for = time() - last_data_time
-        if force:
-            if silent_for > 3.0:
-                break
-        else:
-            lines = nonempty_lines(output)
-            if len(lines) > 5 and silent_for > 3.0:
-                break
-            if len(lines) < 5 and silent_for > 15.0:
-                break
-
+        if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
+            print('no new data more than 1.5 seconds')
+            break
+        if time() - last_data_time > 10 and len(output.strip().strip('\n').splitlines()) <= 5:
+            print('no new data more than 10 seconds')
+            print(output)
+            break
+        if time() - start_time > 20:
+            print('read output takes more than 20 sceonds')
+            print(output)
         sleep(0.01)
 
-    lines_all = output.splitlines()
-    return '\n'.join(lines_all[1:]) if len(lines_all) > 1 else output
-
+    return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     def _parse_value(value: str) -> str | float | int | bool | None:
