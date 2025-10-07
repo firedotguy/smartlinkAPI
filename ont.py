@@ -89,29 +89,6 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         print(f'error search ont: {e.__class__.__name__}: {e}')
         return {'online': False, 'detail': str(e)}, olt_name
 
-def get_ont_summary(host: str, interface: dict) -> dict:
-    """get all onts from port"""
-    try:
-        channel, ssh, _ = connect_ssh(host)
-
-        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
-        online, offline, onts = parse_onts_info(read_output((channel)))
-        if isinstance(online, dict):
-            return online # error
-
-        channel.close()
-        ssh.close()
-        return {
-            'status': 'success',
-            'online': online,
-            'offline': offline,
-            'onts': onts
-        }
-
-    except Exception as e:
-        print(f'error summary ont: {e.__class__.__name__}: {e}')
-        return {'status': 'fail', 'detail': e}
-
 
 def reset_ont(host: str, id: int, interface: dict) -> dict:
     """Restart/reset ONT"""
@@ -138,15 +115,59 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
         print(f'error reset ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
 
+
+def toggle_catv(host: str, id: int, catv_id: int, state: bool, interface: dict) -> tuple[dict, int]:
+    """Toggle CATV port state"""
+    try:
+        channel, ssh, _ = connect_ssh(host)
+
+        channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
+
+        channel.send(bytes(f'ont port attribute {interface["port"]} {id} catv {catv_id} operational-state {"on" if state else "off"}', 'utf-8'))
+        if 'Failure: Make configuration repeatedly' in read_output(channel, False):
+            return {'status': 'fail', 'detail': 'CATV port is already in the requested state'}, 409
+
+        channel.close()
+        ssh.close()
+        return {'status': 'success'}, 200
+    except Exception as e:
+        print(f'error toggle catv: {e.__class__.__name__}: {e}')
+        return {'status': 'fail', 'detail': e}, 500
+
+def get_ont_summary(host: str, interface: dict) -> dict:
+    """get all onts from port"""
+    try:
+        channel, ssh, _ = connect_ssh(host)
+
+        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
+        online, offline, onts = parse_onts_info(read_output((channel)))
+        if isinstance(online, dict):
+            return online # error
+
+        channel.close()
+        ssh.close()
+        return {
+            'status': 'success',
+            'online': online,
+            'offline': offline,
+            'onts': onts
+        }
+
+    except Exception as e:
+        print(f'error summary ont: {e.__class__.__name__}: {e}')
+        return {'status': 'fail', 'detail': e}
+
 def clear_buffer(channel: Channel):
     """Clear console buffer"""
     if channel.recv_ready():
         channel.recv(32768)
 
-def read_output(channel: Channel, force: bool = True):
+def read_output(channel: Channel, force: bool = True, hard_timeout: float = 20.0):
     """Read console output"""
     output = ""
-    last_data_time = time()
+    start_time = last_data_time = time()
 
     while True:
         ready, _, _ = select([channel], [], [], 0.05)
@@ -155,28 +176,29 @@ def read_output(channel: Channel, force: bool = True):
             if data:
                 output += data
                 last_data_time = time()
-                # pagination
+
                 if PAGINATION in data:
                     channel.send(b" ")
                     continue
 
-                # command completed ("user#" input in data)
-                if output.strip().endswith('#') and (len(output.strip().strip('\n').splitlines()) > 5 or not force):
-                    print('command completed')
-                    break
-                sleep(0.05)
-        # if no new data more than 1.5 seconds and output is not empty
-        # if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
-        #     print('no new data more than 1.5 seconds')
-        #     break
-        # if no new data more than 15 seconds and output is empty
-        if time() - last_data_time > 15 and len(output.strip().strip('\n').splitlines()) <= 5:
-            print('warn: no new data more than 15 seconds')
-            print(output)
+                lines = [ln for ln in output.splitlines() if ln.strip() != ""]
+                last = lines[-1] if lines else ""
+                if last.endswith('#'):
+                    if not force or len(lines) >= 2:
+                        print('command completed')
+                        break
+        if time() - last_data_time > 2.0:
+            if output.strip():
+                break
+
+        if time() - start_time > hard_timeout:
+            print('hard timeout hit')
             break
+
         sleep(0.01)
 
-    return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
+    lines = output.splitlines()
+    return '\n'.join(lines[1:]) if len(lines) > 1 else output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     def _parse_value(value: str) -> str | float | int | bool | None:

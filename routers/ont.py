@@ -3,7 +3,7 @@ from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 
 from api import api_call
-from ont import search_ont, reset_ont, get_ont_summary
+from ont import search_ont, reset_ont, get_ont_summary, toggle_catv
 
 router = APIRouter(prefix='/ont')
 
@@ -25,9 +25,14 @@ def api_get_ont(request: Request, olt_id: int, sn: str):
         'data': res[0]
     }
 
-@router.post('/restart')
-def api_post_ont_restart(id: int, host: str, fibre: int, service: int, port: int):
+@router.post('/{fibre}/{service}/{port}/{id}/restart')
+def api_post_ont_restart(fibre: int, service: int, port: int, id: int, host: str):
     return reset_ont(host, id, {'fibre': fibre, 'service': service, 'port': port})
+
+@router.post('/{fibre}/{service}/{port}/{id}/catv/{catv_id}/toggle')
+def api_post_ont_catv_toggle(fibre: int, service: int, port: int, id: int, catv_id: int, state: bool, host: str):
+    result = toggle_catv(host, id, catv_id, state, {'fibre': fibre, 'service': service, 'port': port})
+    return JSONResponse(result[0], result[1])
 
 @router.get('/summary')
 def api_get_ont_summary(host: str, fibre: int, service: int, port: int):
