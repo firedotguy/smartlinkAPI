@@ -89,29 +89,6 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         print(f'error search ont: {e.__class__.__name__}: {e}')
         return {'online': False, 'detail': str(e)}, olt_name
 
-def get_ont_summary(host: str, interface: dict) -> dict:
-    """get all onts from port"""
-    try:
-        channel, ssh, _ = connect_ssh(host)
-
-        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
-        online, offline, onts = parse_onts_info(read_output((channel)))
-        if isinstance(online, dict):
-            return online # error
-
-        channel.close()
-        ssh.close()
-        return {
-            'status': 'success',
-            'online': online,
-            'offline': offline,
-            'onts': onts
-        }
-
-    except Exception as e:
-        print(f'error summary ont: {e.__class__.__name__}: {e}')
-        return {'status': 'fail', 'detail': e}
-
 
 def reset_ont(host: str, id: int, interface: dict) -> dict:
     """Restart/reset ONT"""
@@ -138,6 +115,51 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
         print(f'error reset ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
 
+
+def toggle_catv(host: str, id: int, catv_id: int, state: bool, interface: dict) -> tuple[dict, int]:
+    """Toggle CATV port state"""
+    try:
+        channel, ssh, _ = connect_ssh(host)
+
+        channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
+        sleep(0.1)
+        clear_buffer(channel)
+
+        channel.send(bytes(f'ont port attribute {interface["port"]} {id} catv {catv_id} operational-state {"on" if state else "off"}\n', 'utf-8'))
+        output = read_output(channel, False)
+        if 'Failure: Make configuration repeatedly' in output:
+            return {'status': 'fail', 'detail': 'CATV port is already in the requested state'}, 409
+
+        channel.close()
+        ssh.close()
+        return {'status': 'success'}, 200
+    except Exception as e:
+        print(f'error toggle catv: {e.__class__.__name__}: {e}')
+        return {'status': 'fail', 'detail': e}, 500
+
+def get_ont_summary(host: str, interface: dict) -> dict:
+    """get all onts from port"""
+    try:
+        channel, ssh, _ = connect_ssh(host)
+
+        channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
+        online, offline, onts = parse_onts_info(read_output((channel)))
+        if isinstance(online, dict):
+            return online # error
+
+        channel.close()
+        ssh.close()
+        return {
+            'status': 'success',
+            'online': online,
+            'offline': offline,
+            'onts': onts
+        }
+
+    except Exception as e:
+        print(f'error summary ont: {e.__class__.__name__}: {e}')
+        return {'status': 'fail', 'detail': e}
+
 def clear_buffer(channel: Channel):
     """Clear console buffer"""
     if channel.recv_ready():
@@ -147,6 +169,7 @@ def read_output(channel: Channel, force: bool = True):
     """Read console output"""
     output = ""
     last_data_time = time()
+    start_time = time()
 
     while True:
         ready, _, _ = select([channel], [], [], 0.05)
@@ -165,15 +188,20 @@ def read_output(channel: Channel, force: bool = True):
                     print('command completed')
                     break
                 sleep(0.05)
-        # if no new data more than 1.5 seconds and output is not empty
-        # if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
-        #     print('no new data more than 1.5 seconds')
-        #     break
-        # if no new data more than 15 seconds and output is empty
-        if time() - last_data_time > 15 and len(output.strip().strip('\n').splitlines()) <= 5:
-            print('warn: no new data more than 15 seconds')
+
+        if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
+            print('no new data more than 1.5 seconds')
+            break
+        if time() - last_data_time > 10 and len(output.strip().strip('\n').splitlines()) <= 5:
+            print('no new data more than 10 seconds')
             print(output)
             break
+        if time() - start_time > 5 and not force:
+            print('read output takes more than 5 seconds')
+            break
+        if time() - start_time > 20:
+            print('read output takes more than 20 sceonds')
+            print(output)
         sleep(0.01)
 
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
