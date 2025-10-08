@@ -55,8 +55,7 @@ def api_post_rewrite_mac(customer_id: int, ls: int):
     res = api_call(
         'customer', 'mark_add',
         f'nogi=bogi&mark_id=1&customer_id={customer_id}&_command=renew_mac_address&'
-        f'_userside_customer_id={customer_id}&_contract_number={ls}',
-        timeout=30
+        f'_userside_customer_id={customer_id}&_contract_number={ls}'
     )
     if int(res['result']):
         return {'status': 'fail', 'detail': res.get('msg')}
