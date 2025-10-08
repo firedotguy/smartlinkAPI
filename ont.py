@@ -85,7 +85,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         channel.send(bytes(
             f"display service-port port "
             f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']} "
-            f"ont {ont_info['ont_id']}\n\n", 'utf-8' # extra \n for pass command ("{ <cr>|autosense<K>|e2e<K>|ont<K>|sort-by<K> }:")
+            f"ont {ont_info['ont_id']}\n", 'utf-8' # extra \n for pass command ("{ <cr>|autosense<K>|e2e<K>|ont<K>|sort-by<K> }:")
         ))
         print(f"display service-port port "
             f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']} "
@@ -220,7 +220,7 @@ def read_output(channel: Channel, force: bool = True):
             print('read output takes more than 20 sceonds')
             print(output)
         sleep(0.01)
-
+    print(output)
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
