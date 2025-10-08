@@ -314,6 +314,8 @@ def parse_basic_info(raw: str) -> dict:
     """Parse basic ONT info"""
     if 'The required ONT does not exist' in raw:
         raise ValueError('ONT not found')
+    if '% Parameter error' in raw:
+        raise ValueError('ONT not found')
     data, tables = _parse_output(raw)
     if data.get('ONT online duration'):
         uptime = fullmatch(r'^(\d*) day\(s\), (\d*) hour\(s\), (\d*) minute\(s\), (\d*) second', data['ONT online duration'])
