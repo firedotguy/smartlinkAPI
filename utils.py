@@ -35,7 +35,7 @@ def remove_sn(data: str) -> str:
         str: Extracted name without the parentheses part.
     """
     if '(' in data:
-        return data.split(' (')[0]
+        return data.rsplit('(', maxsplit=1)[0].strip()
     return data
 
 def extract_sn(data: str) -> None | str:
@@ -54,7 +54,7 @@ def extract_sn(data: str) -> None | str:
     if data.endswith('()'):
         return # if sn is empty
     if '(' in data:
-        return data.split('(')[1].rstrip(')')
+        return data.rsplit('(', maxsplit=1)[-1].rstrip().rstrip(')')
 
 def status_to_str(status: int) -> str:
     """
