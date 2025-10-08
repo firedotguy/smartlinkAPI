@@ -84,7 +84,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         channel.send(bytes(
             f"display service-port port "
-            f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']}"
+            f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']} "
             f"ont {ont_info['ont_id']}\n\n", 'utf-8' # extra \n for pass command ("{ <cr>|autosense<K>|e2e<K>|ont<K>|sort-by<K> }:")
         ))
         ont_info['service_port'] = parse_service_port(read_output(channel), ont_info['interface'])
