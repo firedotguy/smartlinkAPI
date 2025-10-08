@@ -262,7 +262,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     raw = raw.replace(PAGINATION, '').replace('\x1b[37D', '').replace('x1b[37D', '') # remove stupid pagination
     if "Command:" in raw:
         raw = raw.split("Command:", 1)[1]
-        raw = "\n".join(raw.splitlines()[1:])
+        raw = "\n".join(raw.splitlines()[2:])
     for line in raw.splitlines():
         if '#' in line: # prompt lines
             continue
@@ -310,7 +310,6 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             # print('begin table parse; fields:', table_fields, 'appendixes line:', line)
 
             for i, field in enumerate(table_fields):
-                print(field, _find_all(table_heading_raw.lstrip(), field), table_fields[:i].count(field))
                 raw_index = _find_all(table_heading_raw.lstrip(), field)[table_fields[:i].count(field)]
                 # print('found fields:', _find_all(table_heading_raw.lstrip(), field))
 
@@ -412,7 +411,7 @@ def parse_service_port(raw: str, interface: dict) -> int | None:
         f"{interface['fibre']}/{interface['service']} /{interface['port']}",
         f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
     ) # change F/S /P -> F/ S/ P/
-    raw = raw.replace('Switch-Oriented Flow List', '') # remove extra text
+    raw = raw.replace(' Switch-Oriented Flow List\n', '') # remove extra text
     if 'Failure: No service virtual port can be operated' in raw:
         return
     print(_parse_output(raw))
