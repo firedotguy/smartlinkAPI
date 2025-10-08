@@ -416,7 +416,7 @@ def parse_mac(raw: str) -> str | None:
     if 'Failure: There is not any MAC address record' in raw:
         return
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
-    return _parse_output(raw)[1][0][0].get('MAC')
+    return _format_mac(_parse_output(raw)[1][0][0].get('MAC'))
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
@@ -472,3 +472,8 @@ def ping(ip: str) -> None | str:
         return None
     except Exception:
         return None
+
+def _format_mac(mac: str | None) -> str | None:
+    if mac is None:
+        return
+    return ':'.join(mac.replace('-', '')[i:i+2] for i in range(0, len(mac.replace('-', '')), 2))
