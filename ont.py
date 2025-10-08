@@ -45,7 +45,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
     """Search ONT by serial number and return its basic, optical and catv data"""
     ont_info: dict = {}
     olt_name = None
-    if True:#try:
+    try:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
@@ -87,9 +87,6 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
             f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']} "
             f"ont {ont_info['ont_id']}\n\n", 'utf-8' # extra \n for pass command ("{ <cr>|autosense<K>|e2e<K>|ont<K>|sort-by<K> }:")
         ))
-        print(f"display service-port port "
-            f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']} "
-            f"ont {ont_info['ont_id']}")
         ont_info['service_port'] = parse_service_port(read_output(channel), ont_info['interface'])
         if ont_info['service_port']:
             sleep(0.07)
@@ -102,7 +99,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ping_result = ping(ont_info['ip']) if 'ip' in ont_info else None
         ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
         return ont_info, olt_name
-    #except Exception as e:
+    except Exception as e:
         print(f'error search ont: {e.__class__.__name__}: {e}')
         return {'online': False, 'detail': str(e)}, olt_name
 
@@ -220,7 +217,6 @@ def read_output(channel: Channel, force: bool = True):
             print('read output takes more than 20 sceonds')
             print(output)
         sleep(0.01)
-    print(output)
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
@@ -414,7 +410,6 @@ def parse_service_port(raw: str, interface: dict) -> int | None:
     raw = raw.replace(' Switch-Oriented Flow List\n', '') # remove extra text
     if 'Failure: No service virtual port can be operated' in raw:
         return
-    print(_parse_output(raw))
     return _parse_output(raw)[1][0][0].get('INDEX')
 
 def parse_mac(raw: str) -> str | None:
