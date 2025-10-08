@@ -225,7 +225,7 @@ def read_output(channel: Channel, force: bool = True):
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     def _parse_value(value: str) -> str | float | int | bool | None:
-        value = value.strip()
+        value = value.strip().rstrip('/')
         value = split(r"\+06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
 
         if value == '-':
@@ -282,7 +282,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         # if PAGINATION in line: # partially-pagination line
         #     line = line.strip(PAGINATION).strip('\x1b[37D').strip('x1b[37D')
 
-        if line.strip().startswith('Notes:') or is_notes: # notes line
+        if line.strip().startswith('Notes:') or line.strip().startswith('Note :') or is_notes: # notes line
             is_notes = True
             continue
 
@@ -310,6 +310,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             # print('begin table parse; fields:', table_fields, 'appendixes line:', line)
 
             for i, field in enumerate(table_fields):
+                print(field, _find_all(table_heading_raw.lstrip(), field), table_fields[:i].count(field))
                 raw_index = _find_all(table_heading_raw.lstrip(), field)[table_fields[:i].count(field)]
                 # print('found fields:', _find_all(table_heading_raw.lstrip(), field))
 
