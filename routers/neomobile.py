@@ -16,13 +16,13 @@ def neomobile_api_get_login(request: Request, phone: str, agreement: str):
         f'data_typer=agreement_number&data_value={agreement}')
     if 'Id' not in id:
         return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, 404)
-
-    data = api_call('customer', 'get_data', f'id={id}')
+    data = api_call('customer', 'get_data', f'id={id["Id"]}')
     if 'data' not in data:
-        if len(data['data']['phone']) > 0:
-            if data['data']['phone'][0]['number'] != phone:
-                return JSONResponse({'status': 'fail', 'detail': 'invalid phone number'}, 404)
+        return JSONResponse({'status': 'fail', 'detail': 'customer not exists'}, 404)
     data = data['data']
+    if len(data['phone']) > 0:
+        if data['phone'][0]['number'] != phone:
+            return JSONResponse({'status': 'fail', 'detail': 'invalid phone number'}, 404)
 
     tariff_data = []
     for tariff in data['tariff']['current']:
@@ -33,7 +33,7 @@ def neomobile_api_get_login(request: Request, phone: str, agreement: str):
             })
     return {
         'status': 'success',
-        'id': id,
+        'id': id['Id'],
         'name': remove_sn(data['full_name']),
         'phone': phone,
         'agreement': agreement,
