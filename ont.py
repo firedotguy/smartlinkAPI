@@ -45,7 +45,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
     """Search ONT by serial number and return its basic, optical and catv data"""
     ont_info: dict = {}
     olt_name = None
-    try:
+    if True:#try:
         channel, ssh, olt_name = connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
@@ -99,7 +99,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ping_result = ping(ont_info['ip']) if 'ip' in ont_info else None
         ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
         return ont_info, olt_name
-    except Exception as e:
+    #except Exception as e:
         print(f'error search ont: {e.__class__.__name__}: {e}')
         return {'online': False, 'detail': str(e)}, olt_name
 
