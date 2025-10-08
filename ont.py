@@ -32,12 +32,12 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
     clear_buffer(channel)
 
     channel.send(b"enable\n")
-    sleep(0.08)
+    sleep(0.07)
     olt_name = read_output(channel, False).splitlines()[-1].strip().rstrip('#')
     clear_buffer(channel)
 
     channel.send(b"config\n")
-    sleep(0.08)
+    sleep(0.07)
     clear_buffer(channel)
     return channel, ssh, olt_name
 
@@ -56,7 +56,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ont_info = parsed_ont_info
 
         channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
-        sleep(0.08)
+        sleep(0.07)
         clear_buffer(channel)
 
         if ont_info.get('online'):
@@ -66,7 +66,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
-            sleep(0.08)
+            sleep(0.07)
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
             catv = parse_port_status(read_output(channel))
             catv_results.append(catv)
@@ -78,8 +78,8 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ont_info['eth'] = eth_results
         del ont_info['_catv_ports']
 
-        channel.send(b'quit') # quit from interface
-        sleep(0.08)
+        channel.send(b'quit\n') # quit from interface
+        sleep(0.07)
         clear_buffer(channel)
 
         channel.send(bytes(
@@ -92,7 +92,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
             f"ont {ont_info['ont_id']}")
         ont_info['service_port'] = parse_service_port(read_output(channel), ont_info['interface'])
         if ont_info['service_port']:
-            sleep(0.08)
+            sleep(0.07)
             channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n', 'utf-8'))
             ont_info['mac'] = parse_mac(read_output(channel))
 
