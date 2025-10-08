@@ -2,7 +2,7 @@
 from time import sleep, time
 from select import select
 from subprocess import run
-from re import search, fullmatch, split, match
+from re import search, fullmatch, split
 
 from paramiko import SSHClient, AutoAddPolicy, Channel
 from config import SSH_USER, SSH_PASSWORD
@@ -19,7 +19,7 @@ DIVIDER = '-' * 78
 
 # sequence: fibre -> service -> port -> ont
 
-def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
+def _connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
     """Connect to SSH client using paramiko"""
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
@@ -29,16 +29,16 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
 
     channel = ssh.invoke_shell()
     sleep(0.2)
-    clear_buffer(channel)
+    _clear_buffer(channel)
 
     channel.send(b"enable\n")
     sleep(0.07)
-    olt_name = read_output(channel, False).splitlines()[-1].strip().rstrip('#')
-    clear_buffer(channel)
+    olt_name = _read_output(channel, False).splitlines()[-1].strip().rstrip('#')
+    _clear_buffer(channel)
 
     channel.send(b"config\n")
     sleep(0.07)
-    clear_buffer(channel)
+    _clear_buffer(channel)
     return channel, ssh, olt_name
 
 def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
@@ -46,10 +46,10 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
     ont_info: dict = {}
     olt_name = None
     try:
-        channel, ssh, olt_name = connect_ssh(host)
+        channel, ssh, olt_name = _connect_ssh(host)
 
         channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
-        parsed_ont_info = parse_basic_info(read_output(channel))
+        parsed_ont_info = _parse_basic_info(_read_output(channel))
 
         if 'error' in parsed_ont_info:
             return {'status': 'offline', 'detail': parsed_ont_info['error']}, olt_name
@@ -57,22 +57,22 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
         sleep(0.07)
-        clear_buffer(channel)
+        _clear_buffer(channel)
 
         if ont_info.get('online'):
             channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
-            optical_info = parse_optical_info(read_output(channel))
+            optical_info = _parse_optical_info(_read_output(channel))
             ont_info['optical'] = optical_info
 
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
             sleep(0.07)
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
-            catv = parse_port_status(read_output(channel))
+            catv = _parse_port_status(_read_output(channel))
             catv_results.append(catv)
 
         channel.send(bytes(f"display ont port state {ont_info['interface']['port']} {ont_info['ont_id']} eth-port all\n", 'utf-8'))
-        eth_results = parse_eth_ports_status(read_output(channel))
+        eth_results = _parse_eth_ports_status(_read_output(channel))
 
         ont_info['catv'] = catv_results
         ont_info['eth'] = eth_results
@@ -80,23 +80,23 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         channel.send(b'quit\n') # quit from interface
         sleep(0.07)
-        clear_buffer(channel)
+        _clear_buffer(channel)
 
         channel.send(bytes(
             f"display service-port port "
             f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']} "
             f"ont {ont_info['ont_id']}\n\n", 'utf-8' # extra \n for pass command ("{ <cr>|autosense<K>|e2e<K>|ont<K>|sort-by<K> }:")
         ))
-        ont_info['service_port'] = parse_service_port(read_output(channel), ont_info['interface'])
+        ont_info['service_port'] = _parse_service_port(_read_output(channel), ont_info['interface'])
         if ont_info['service_port']:
             sleep(0.07)
             channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n', 'utf-8'))
-            ont_info['mac'] = parse_mac(read_output(channel))
+            ont_info['mac'] = _parse_mac(_read_output(channel))
 
         channel.close()
         ssh.close()
 
-        ping_result = ping(ont_info['ip']) if 'ip' in ont_info else None
+        ping_result = _ping(ont_info['ip']) if 'ip' in ont_info else None
         ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
         return ont_info, olt_name
     except Exception as e:
@@ -107,17 +107,17 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 def reset_ont(host: str, id: int, interface: dict) -> dict:
     """Restart/reset ONT"""
     try:
-        channel, ssh, _ = connect_ssh(host)
+        channel, ssh, _ = _connect_ssh(host)
 
         channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
         sleep(0.1)
-        clear_buffer(channel)
+        _clear_buffer(channel)
 
         channel.send(bytes(f"ont reset {interface['port']} {id}\n", 'utf-8'))
         sleep(0.2)
         channel.send(b'y\n') # confirmation
         sleep(2)
-        out = read_output(channel)
+        out = _read_output(channel)
         if 'Failure:' in out:
             print(f'error reset ont: failure: {out.split("Failure:")[1]}')
             return {'status': 'fail', 'detail': out.split('Failure:')[1].split('\n')[0]}
@@ -133,14 +133,14 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
 def toggle_catv(host: str, id: int, catv_id: int, state: bool, interface: dict) -> tuple[dict, int]:
     """Toggle CATV port state"""
     try:
-        channel, ssh, _ = connect_ssh(host)
+        channel, ssh, _ = _connect_ssh(host)
 
         channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
         sleep(0.1)
-        clear_buffer(channel)
+        _clear_buffer(channel)
 
         channel.send(bytes(f'ont port attribute {interface["port"]} {id} catv {catv_id} operational-state {"on" if state else "off"}\n', 'utf-8'))
-        output = read_output(channel, False)
+        output = _read_output(channel, False)
         if 'Failure: Make configuration repeatedly' in output:
             return {'status': 'fail', 'detail': 'CATV port is already in the requested state'}, 409
 
@@ -154,10 +154,10 @@ def toggle_catv(host: str, id: int, catv_id: int, state: bool, interface: dict) 
 def get_ont_summary(host: str, interface: dict) -> dict:
     """get all onts from port"""
     try:
-        channel, ssh, _ = connect_ssh(host)
+        channel, ssh, _ = _connect_ssh(host)
 
         channel.send(bytes(f"display ont info summary {interface['fibre']}/{interface['service']}/{interface['port']}\n", 'utf-8'))
-        online, offline, onts = parse_onts_info(read_output((channel)))
+        online, offline, onts = _parse_onts_info(_read_output((channel)))
         if isinstance(online, dict):
             return online # error
 
@@ -174,12 +174,12 @@ def get_ont_summary(host: str, interface: dict) -> dict:
         print(f'error summary ont: {e.__class__.__name__}: {e}')
         return {'status': 'fail', 'detail': e}
 
-def clear_buffer(channel: Channel):
+def _clear_buffer(channel: Channel):
     """Clear console buffer"""
     if channel.recv_ready():
         channel.recv(32768)
 
-def read_output(channel: Channel, force: bool = True):
+def _read_output(channel: Channel, force: bool = True):
     """Read console output"""
     output = ""
     last_data_time = time()
@@ -326,7 +326,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
 
     return fields, [table for table in tables if table]
 
-def parse_basic_info(raw: str) -> dict:
+def _parse_basic_info(raw: str) -> dict:
     """Parse basic ONT info"""
     if 'The required ONT does not exist' in raw:
         raise ValueError('ONT not found')
@@ -369,7 +369,7 @@ def parse_basic_info(raw: str) -> dict:
         # '_eth_ports': next((item.get('Port-number') for item in ports_table or [] if item.get('Port-type') == 'ETH'), None)
     }
 
-def parse_optical_info(raw: str) -> dict:
+def _parse_optical_info(raw: str) -> dict:
     """Parse ONT optical info"""
     if 'The ONT is not online' in raw:
         return {'status': 'fail', 'detail': 'ONT is not online'}
@@ -392,17 +392,17 @@ def parse_optical_info(raw: str) -> dict:
         }
     }
 
-def parse_port_status(raw: str) -> bool:
+def _parse_port_status(raw: str) -> bool:
     """Parse ONT port status"""
     _, tables = _parse_output(raw)
     return tables[0][0].get('Port-switch') or tables[0][0].get('switch') or tables[0][0].get('Port') or False
 
-def parse_eth_ports_status(raw: str) -> list[dict]:
+def _parse_eth_ports_status(raw: str) -> list[dict]:
     """Parse ONT eth ports status"""
     _, tables = _parse_output(raw)
     return [{'id': table.get('ONT-port-ID'), 'status': table.get('LinkState') or False, 'speed': table.get('Speed-(Mbps)')} for table in tables[0]]
 
-def parse_service_port(raw: str, interface: dict) -> int | None:
+def _parse_service_port(raw: str, interface: dict) -> int | None:
     raw = raw.replace(
         f"{interface['fibre']}/{interface['service']} /{interface['port']}",
         f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
@@ -412,13 +412,13 @@ def parse_service_port(raw: str, interface: dict) -> int | None:
         return
     return _parse_output(raw)[1][0][0].get('INDEX')
 
-def parse_mac(raw: str) -> str | None:
+def _parse_mac(raw: str) -> str | None:
     if 'Failure: There is not any MAC address record' in raw:
         return
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
     return _format_mac(_parse_output(raw)[1][0][0].get('MAC'))
 
-def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
+def _parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
 
     if len(out) < 2:
@@ -461,7 +461,7 @@ def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, No
 
     return online, offline, onts
 
-def ping(ip: str) -> None | str:
+def _ping(ip: str) -> None | str:
     """Ping ONT by IP"""
     try:
         result = run(['ping', '-c', '1', '-W', '300', ip], capture_output=True, text=True, timeout=1)
