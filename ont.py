@@ -32,12 +32,12 @@ def connect_ssh(host: str) -> tuple[Channel, SSHClient, str]:
     clear_buffer(channel)
 
     channel.send(b"enable\n")
-    sleep(0.05)
+    sleep(0.07)
     olt_name = read_output(channel, False).splitlines()[-1].strip().rstrip('#')
     clear_buffer(channel)
 
     channel.send(b"config\n")
-    sleep(0.1)
+    sleep(0.07)
     clear_buffer(channel)
     return channel, ssh, olt_name
 
@@ -56,7 +56,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ont_info = parsed_ont_info
 
         channel.send(bytes(f"interface gpon {ont_info['interface']['fibre']}/{ont_info['interface']['service']}\n", 'utf-8'))
-        sleep(0.1)
+        sleep(0.07)
         clear_buffer(channel)
 
         if ont_info.get('online'):
@@ -78,11 +78,25 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ont_info['eth'] = eth_results
         del ont_info['_catv_ports']
 
+        channel.send(b'quit') # quit from interface
+        sleep(0.07)
+        clear_buffer(channel)
+
+        channel.send(bytes(
+            f"display service-port port "
+            f"{ont_info['interface']['fibre']}/{ont_info['interface']['service']}/{ont_info['interface']['port']}"
+            f"ont {ont_info['ont_id']}\n\n", 'utf-8' # extra \n for pass command ("{ <cr>|autosense<K>|e2e<K>|ont<K>|sort-by<K> }:")
+        ))
+        ont_info['service_port'] = parse_service_port(read_output(channel), ont_info['interface'])
+        if ont_info['service_port']:
+            sleep(0.07)
+            channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n', 'utf-8'))
+            ont_info['mac'] = parse_mac(read_output(channel))
+
         channel.close()
         ssh.close()
 
         ping_result = ping(ont_info['ip']) if 'ip' in ont_info else None
-
         ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
         return ont_info, olt_name
     except Exception as e:
@@ -243,6 +257,9 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     table_fields = []
 
     raw = raw.replace(PAGINATION, '').replace('\x1b[37D', '').replace('x1b[37D', '') # remove stupid pagination
+    if "Command:" in raw:
+        raw = raw.split("Command:", 1)[1]
+        raw = "\n".join(raw.splitlines()[1:])
     for line in raw.splitlines():
         if '#' in line: # prompt lines
             continue
@@ -385,6 +402,20 @@ def parse_eth_ports_status(raw: str) -> list[dict]:
     """Parse ONT eth ports status"""
     _, tables = _parse_output(raw)
     return [{'id': table.get('ONT-port-ID'), 'status': table.get('LinkState') or False, 'speed': table.get('Speed-(Mbps)')} for table in tables[0]]
+
+def parse_service_port(raw: str, interface: dict) -> int | None:
+    raw = raw.replace(
+        f"{interface['fibre']}/{interface['service']} /{interface['port']}",
+        f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
+    ) # avoid F/S /P
+    if 'Failure: No service virtual port can be operated' in raw:
+        return
+    return _parse_output(raw)[1][0][0].get('INDEX')
+
+def parse_mac(raw: str) -> str | None:
+    if 'Failure: There is not any MAC address record' in raw:
+        return
+    return _parse_output(raw)[1][0][0].get('MAC')
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
     out = [line.strip() for line in (output.replace(PAGINATION_WITH_SPACES, "").split(DIVIDER))]
