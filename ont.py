@@ -415,6 +415,7 @@ def parse_service_port(raw: str, interface: dict) -> int | None:
 def parse_mac(raw: str) -> str | None:
     if 'Failure: There is not any MAC address record' in raw:
         return
+    raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
     return _parse_output(raw)[1][0][0].get('MAC')
 
 def parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
