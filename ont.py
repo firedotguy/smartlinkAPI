@@ -410,6 +410,8 @@ def parse_service_port(raw: str, interface: dict) -> int | None:
     ) # avoid F/S /P
     if 'Failure: No service virtual port can be operated' in raw:
         return
+    print(raw)
+    print(_parse_output(raw))
     return _parse_output(raw)[1][0][0].get('INDEX')
 
 def parse_mac(raw: str) -> str | None:
