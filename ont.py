@@ -410,7 +410,8 @@ def parse_service_port(raw: str, interface: dict) -> int | None:
     raw = raw.replace(
         f"{interface['fibre']}/{interface['service']} /{interface['port']}",
         f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
-    ) # avoid F/S /P
+    ) # change F/S /P -> F/ S/ P/
+    raw = raw.replace('Switch-Oriented Flow List', '') # remove extra text
     if 'Failure: No service virtual port can be operated' in raw:
         return
     print(_parse_output(raw))
