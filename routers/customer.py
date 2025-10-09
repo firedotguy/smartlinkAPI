@@ -1,4 +1,5 @@
 from html import unescape
+from ipaddress import IPv4Address
 
 from fastapi import APIRouter
 from fastapi.requests import Request
@@ -6,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from api import api_call
 from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn,\
-    parse_agreement, status_to_str, str_to_list
+    parse_agreement, status_to_str, str_to_list, format_mac
 
 router = APIRouter(prefix='/customer')
 
@@ -43,8 +44,8 @@ def api_get_customer_search(query: str):
 @router.get('/{id}')
 def api_get_customer(request: Request, id: int):
     customer = api_call('customer', 'get_data', f'id={id}').get('data')
-    if customer is None: return JSONResponse({'status': 'fail', 'detail': 'customer not found'},
-        404)
+    if customer is None:
+        return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, 404)
 
     tariffs = [
         {'id': int(tariff['id']), 'name': request.app.state.tariffs[tariff['id']]}
@@ -54,8 +55,7 @@ def api_get_customer(request: Request, id: int):
     geodata = {}
     if 'additional_data' in customer:
         if '7' in customer['additional_data']:
-            geodata['coord'] = list(map(float, customer['additional_data']['7']['value']
-                .split(',')))
+            geodata['coord'] = list(map(float, customer['additional_data']['7']['value'].split(',')))
         if '42' in customer['additional_data']:
             geodata['address'] = unescape(customer['additional_data']['42']['value'])
         if '6' in customer['additional_data']:
@@ -66,10 +66,11 @@ def api_get_customer(request: Request, id: int):
         if '2gis_link' in geodata:
             geodata['2gis_link'] = to_2gis_link(geodata['coord'][0], geodata['coord'][1])
 
+
     olt = api_call('commutation', 'get_data',
         f'object_type=customer&object_id={id}&is_finish_data=1')['data']
-    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' \
-        and extract_sn(customer['full_name']) is not None:
+
+    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' and extract_sn(customer['full_name']) is not None:
         ont = api_call('device', 'get_ont_data', f'id={extract_sn(customer["full_name"])}')['data']
         if isinstance(ont, dict):
             olt_id = ont.get('device_id')
@@ -79,7 +80,6 @@ def api_get_customer(request: Request, id: int):
         olt_id = None
     else:
         olt_id = olt['finish']['object_id']
-
 
 
     # INVENTORY
@@ -146,25 +146,62 @@ def api_get_customer(request: Request, id: int):
 
     return {
         'status': 'success',
-        'id': customer['id'],
-        'olt_id': olt_id,
-        'balance': customer['balance'],
-        'name': remove_sn(customer['full_name']),
-        'agreement': parse_agreement(customer['agreement'][0]['number']),
-        'status': status_to_str(customer['state_id']),
-        'sn': extract_sn(customer['full_name']),
-        'tasks': tasks,
-        # 'onu_level': get_ont_data(extract_sn(customer['full_name'])),
-        'tariffs': tariffs,
-        'phones': [phone['number'] for phone in customer['phone'] if phone['number']],
-        'last_activity': customer['date_activity'],
-        'inventory': inventory,
-        'box_id': customer['address'][0]['house_id'] if customer['address'][0]['house_id'] != 0 else None,
-        'geodata': geodata,
-        'group': {
-            'id': list(customer['group'].values())[0]['id'],
-            'name': request.app.state.customer_groups[list(customer['group'].values())[0]['id']]
-        } if 'group' in customer else None
+        'data': {
+            # main data
+            'id': customer['id'],
+            'name': remove_sn(customer['full_name']),
+            'agreement': parse_agreement(customer['agreement'][0]['number']),
+            'status': status_to_str(customer['state_id']),
+            'group': {
+                'id': list(customer['group'].values())[0]['id'],
+                'name': request.app.state.customer_groups[list(customer['group'].values())[0]['id']]
+            } if 'group' in customer else None,
+            'phones': [phone['number'] for phone in customer['phone'] if phone['number']],
+            'tariffs': tariffs,
+            'manager_id': customer.get('manager_id'),
+
+            'is_corporate': bool(customer.get('flag_corporate', False)),
+            'is_disabled': bool(customer.get('is_disable', False)),
+            'is_potential': bool(customer.get('is_potential', False)),
+
+            'inventory': inventory,
+            'tasks': tasks,
+
+            # ONT
+            'olt_id': olt_id,
+            'sn': extract_sn(customer['full_name']),
+            'ip': str(IPv4Address(int(list(customer['ip_mac'].values())[0]['ip']))) if list(customer.get('ip_mac', {}).values())[0].get('ip') else None,
+            'mac': format_mac(list(customer.get('ip_mac').values())[0].get('mac')),
+            # 'onu_level': get_ont_data(extract_sn(customer['full_name'])),
+
+            # billing
+            'has_billing': bool(customer.get('is_in_billing', False)),
+            'billing': {
+                'id': int(customer['billing_id']) if 'billing_id' in customer else None,
+                'crc': customer.get('crc_billing')
+            },
+            'balance': customer['balance'],
+
+            # geodata
+            'address': {
+                'house_id': customer['address'][0].get('house_id') if customer.get('address', [{}])[0].get('house_id') else None,
+                'entrance': customer['address'][0].get('entrance') if customer.get('address', [{}])[0].get('entrance') else None,
+                'floor': int(customer['address'][0]['floor']) if customer.get('address', [{}])[0].get('floor') else None,
+                'apartment': unescape(customer['address'][0]['apartment']['number'])
+                    if customer.get('address', [{}])[0].get('apartment', {}).get('number') else None
+            },
+            'box_id': customer['address'][0]['house_id'] if customer['address'][0]['house_id'] != 0 else None,
+            'geodata': geodata,
+
+            # timestamps
+            'timestamps': {
+                'created_at': customer.get('date_create'),
+                'connected_at': customer.get('date_connect'),
+                'positive_balance_at': customer.get('date_positive_balance'),
+                'last_active_at': customer.get('date_activity'),
+                'last_inet_active_at': customer.get('date_activity_inet')
+            }
+        }
     }
 
 

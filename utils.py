@@ -166,3 +166,17 @@ def get_current_time() -> str:
         str: Current time string.
     """
     return dt.now().strftime("%Y.%m.%d %H:%M:%S")
+
+def format_mac(mac: str | None) -> str | None:
+    """
+    Format MAC address (insert ":" between every 2 symbols)
+
+    Args:
+        mac (str | None): MAC address without ":"
+
+    Returns:
+        str | None: Formatted MAC with ":"
+    """
+    if mac is None:
+        return
+    return ':'.join(mac.replace('-', '')[i:i + 2] for i in range(0, len(mac.replace('-', '')), 2))
