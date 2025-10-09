@@ -81,6 +81,8 @@ app.include_router(task.router)
 async def check_api_key(request: Request, call_next):
     """API middleware for validate APIKEY"""
     url = request.url.path.rstrip('/')
+    if 'apikey' not in request.query_params:
+        return JSONResponse({'status': 'fail', 'detail': 'no api key'}, 403)
     if url in ('/favicon.ico', '') and request.query_params.get('apikey') != APIKEY:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, 401)
     return await call_next(request)
