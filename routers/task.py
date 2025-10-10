@@ -88,8 +88,8 @@ def api_get_task(id: int, get_employee_names: bool = True):
                 'id': customer['id'],
                 'name': remove_sn(customer['full_name'])
             } if customer else None,
-            'employees': list(task.get('staff', {}).get('employee', {}).values()),
-            'divisions': list(task.get('staff', {}).get('division', {}).values()),
+            'employees': list(task.get('staff', {}).get('employee', {}).values()), # TODO: get employees names
+            'divisions': list(task.get('staff', {}).get('division', {}).values()), # TODO: get divisions names
         }
     }
 

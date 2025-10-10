@@ -142,6 +142,8 @@ def normalize_items(raw: dict) -> list:
     data = raw.get('data')
     if data is None:
         return []
+    if isinstance(data, list):
+        return data
     if all([isinstance(item, dict) for item in list(data.values())]):
         return data.values()
     return [data]
