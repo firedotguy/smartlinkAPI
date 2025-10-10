@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from api import api_call, set_additional_data
-from utils import get_current_time, str_to_list, list_to_str
+from utils import get_current_time, normalize_items, str_to_list, list_to_str
 
 router = APIRouter(prefix='/task')
 
@@ -148,4 +148,94 @@ def api_post_task(
     return {
         'status': 'success',
         'id': id
+    }
+
+@router.get('')
+def api_get_tasks(
+    customer_id: int | None = None,
+    get_data: bool = True,
+    get_employee_names: bool = True,
+):
+    tasks = []
+    if customer_id is not None:
+        tasks = list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer_id}')['list'])))
+    else:
+        return JSONResponse({'status': 'fail', 'detail': 'no filters provided'}, 422)
+
+    tasks_data = []
+    if get_data:
+        for task in normalize_items(api_call('task', 'show', f'id={list_to_str(tasks)}')):
+            tasks_data.append({
+                'id': task['id'],
+                'comments': [
+                    {
+                        'id': comment['id'],
+                        'created_at': comment['dateAdd'],
+                        'author': {
+                            'id': comment['employee_id'],
+                            'name': (api_call('employee', 'get_data', f'id={comment["employee_id"]}')
+                                    .get('data', {}).get(str(comment['employee_id']), {}).get('name')
+                                    if get_employee_names else None)
+                        } if comment.get('employee_id') else None,
+                        'content': comment['comment']
+                    } for comment in task.get('comments', {}).values()
+                ],
+                'timestamps': {
+                    'created_at': task['date'].get('create'),
+                    'planned_at': task['date'].get('todo'),
+                    'updated_at': task['date'].get('update'),
+                    'completed_at': task['date'].get('complete'),
+                    'deadline': task['date'].get('runtime_individual_hour')
+                },
+                'addata': {
+                    'reason': task['additional_data'].get('30', {}).get('value'),
+                    'solve': task['additional_data'].get('36', {}).get('value'),
+                    'appeal': {
+                        'phone': task['additional_data'].get('29', {}).get('value'),
+                        'type': task['additional_data'].get('28', {}).get('value')
+                    },
+                    'cost': float(task['additional_data'].get('26', {}).get('value'))
+                        if task['additional_data'].get('26', {}).get('value') else None
+                } if task['type']['id'] == 37 else {
+                    'reason': task['additional_data'].get('33', {}).get('value'),
+                    'info': task['additional_data'].get('34', {}).get('value'),
+                    'appeal': {
+                        'phone': task['additional_data'].get('29', {}).get('value'),
+                        'type': task['additional_data'].get('28', {}).get('value')
+                    },
+                } if task['type']['id'] == 38 else {
+                    'coord': list(map(float, task['additional_data']['7']['value'].split(',')))
+                        if '7' in task['additional_data'] else None,
+                    'tariff': task['additional_data'].get('25', {}).get('value'),
+                    'connect_type': task['additional_data'].get('27', {}).get('value')
+                } if task['type']['id'] == 28 else None,
+                'type': {
+                    'id': task['type']['id'],
+                    'name': task['type']['name']
+                },
+                'author': {
+                    'id': task['author_employee_id'],
+                    'name': (api_call('employee', 'get_data', f'id={task["author_employee_id"]}')
+                        .get('data', {}).get(str(task['author_employee_id']), {}).get('name')
+                        if get_employee_names else None)
+                },
+                'status': {
+                    'id': task['state']['id'],
+                    'name': task['state']['name'],
+                    'system_id': task['state']['system_role']
+                } if task.get('state') else None,
+                'address': {
+                    'id': task['address'].get('addressId'),
+                    'name': task['address'].get('text'),
+                    'apartment': unescape(task['address']['apartment'])
+                        if task['address'].get('apartment') else None
+                },
+                'customer': task['customer'][0] if 'customer' in task else None,
+                'employees': list(task.get('staff', {}).get('employee', {}).values()),
+                'divisions': list(task.get('staff', {}).get('division', {}).values()),
+            })
+
+    return {
+        'status': 'success',
+        'data': tasks_data or tasks
     }
