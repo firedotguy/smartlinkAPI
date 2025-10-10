@@ -26,8 +26,6 @@ def api_get_inventory(
 
         for item in items:
             name = [name for name in names if name['id'] == item['inventory_type_id']][0]
-            print(name)
-            print(item)
             named_items.append({
                 'id': item['id'],
                 'type_id': item['inventory_type_id'], # mean model (e.g VSOLVA74) # equals item['catalog_id']

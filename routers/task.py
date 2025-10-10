@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from api import api_call, set_additional_data
-from utils import get_current_time, normalize_items, str_to_list, list_to_str
+from utils import get_current_time, normalize_items, str_to_list, list_to_str, remove_sn
 
 router = APIRouter(prefix='/task')
 
@@ -13,6 +13,10 @@ def api_get_task(id: int, get_employee_names: bool = True):
     task = api_call('task', 'show', f'id={id}').get('data')
     if task is None:
         return JSONResponse({'status': 'fail', 'detail': 'task not found'}, 404)
+
+    customer = api_call('customer', 'get_data', f'id={task["customer"][0]}')['data'] if 'customer' in task else None
+
+
     return {
         'status': 'success',
         'data': {
@@ -80,7 +84,10 @@ def api_get_task(id: int, get_employee_names: bool = True):
                 'apartment': unescape(task['address']['apartment'])
                     if task['address'].get('apartment') else None
             },
-            'customer': task['customer'][0] if 'customer' in task else None,
+            'customer': {
+                'id': customer['id'],
+                'name': remove_sn(customer['full_name'])
+            } if customer else None,
             'employees': list(task.get('staff', {}).get('employee', {}).values()),
             'divisions': list(task.get('staff', {}).get('division', {}).values()),
         }
@@ -165,6 +172,7 @@ def api_get_tasks(
     tasks_data = []
     if get_data:
         for task in normalize_items(api_call('task', 'show', f'id={list_to_str(tasks)}')):
+            customer = api_call('customer', 'get_data', f'id={task["customer"][0]}')['data'] if 'customer' in task else None
             tasks_data.append({
                 'id': task['id'],
                 'comments': [
@@ -230,7 +238,10 @@ def api_get_tasks(
                     'apartment': unescape(task['address']['apartment'])
                         if task['address'].get('apartment') else None
                 },
-                'customer': task['customer'][0] if 'customer' in task else None,
+                'customer': {
+                    'id': customer['id'],
+                    'name': remove_sn(customer['full_name'])
+                } if customer else None,
                 'employees': list(task.get('staff', {}).get('employee', {}).values()),
                 'divisions': list(task.get('staff', {}).get('division', {}).values()),
             })
