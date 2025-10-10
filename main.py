@@ -13,6 +13,7 @@ from routers import neomobile
 from routers import ont
 from routers import task
 from routers import attach
+from routers import inventory
 from api import api_call
 from config import API_KEY as APIKEY
 
@@ -75,6 +76,7 @@ app.include_router(employee.router)
 app.include_router(neomobile.router)
 app.include_router(ont.router)
 app.include_router(task.router)
+app.include_router(inventory.router)
 
 
 @app.middleware('http')

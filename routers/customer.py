@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from api import api_call
 from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn,\
-    parse_agreement, status_to_str, str_to_list, format_mac
+    parse_agreement, status_to_str, format_mac
 
 router = APIRouter(prefix='/customer')
 
@@ -83,33 +83,31 @@ def api_get_customer(request: Request, id: int):
 
 
     # INVENTORY
-    items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')\
-        .get('data', {})
-    if isinstance(items, dict):
-        items = items.values()
+    # items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')\
+    #     .get('data', {})
+    # if isinstance(items, dict):
+    #     items = items.values()
 
-    item_names = [
-        {
-            'id': str(item['id']),
-            'name': unescape(item['name']),
-            'catalog': item['inventory_section_catalog_id']
-        }
-        for item in api_call('inventory', 'get_inventory_catalog',
-            f'id={list_to_str([str(i["inventory_type_id"]) for i in items])}')['data'].values()
-    ]
-    inventory = []
-    for item in items:
-        item_name = item_names[item_names.index([
-            i for i in item_names if i['id'] == str(item['inventory_type_id'])
-        ][0])]
-        inventory.append({
-            'id': item['id'],
-            'catalog_id': item['inventory_type_id'],
-            'name': item_name['name'],
-            'amount': item['amount'],
-            'category_id': item_name['catalog'],
-            'sn': item['serial_number']
-        })
+    # item_names = [
+    #     {
+    #         'id': str(item['id']),
+    #         'name': unescape(item['name']),
+    #         'catalog': item['inventory_section_catalog_id']
+    #     }
+    #     for item in api_call('inventory', 'get_inventory_catalog',
+    #         f'id={list_to_str([str(i["inventory_type_id"]) for i in items])}')['data'].values()
+    # ]
+    # inventory = []
+    # for item in items:
+    #     item_name = [i for i in item_names if i['id'] == str(item['inventory_type_id'])][0]
+    #     inventory.append({
+    #         'id': item['id'],
+    #         'catalog_id': item['inventory_type_id'],
+    #         'name': item_name['name'],
+    #         'amount': item['amount'],
+    #         'category_id': item_name['catalog'],
+    #         'sn': item['serial_number']
+    #     })
 
 
     # TASK
@@ -164,7 +162,7 @@ def api_get_customer(request: Request, id: int):
             'is_disabled': bool(customer.get('is_disable', False)),
             'is_potential': bool(customer.get('is_potential', False)),
 
-            'inventory': inventory,
+            # 'inventory': inventory,
             # 'tasks': tasks,
 
             # ONT
