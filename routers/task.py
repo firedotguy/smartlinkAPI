@@ -118,38 +118,41 @@ def api_post_task_comment(id: int, content: str, author: int | None = None):
 
 @router.post('')
 def api_post_task(
-    customer_id: int | None = None, author_id: int | None = None,
-    reason: str | None = None, phone: int | None = None, type: str | None = None,
-    box: bool = False, address_id: int | None = None, description: str | None = None,
+    type: int,
+
+    customer_id: int | None = None,
+    address_id: int | None = None,
+
+    author_id: int | None = None,
+    reason: str | None = None,
+    appeal_phone: int | None = None,
+    appeal_type: str | None = None,
+
+    description: str | None = None,
     divisions: str = ''
 ):
-    if box and address_id is None:
-        return JSONResponse({'status': 'fail', 'detail': 'address_id is required for box'}, 422)
-    if not box and customer_id is None:
-        return JSONResponse({'status': 'fail', 'detail': 'customer_id is required for customer'}, 422)
+    if (customer_id is None and address_id is None) or (customer_id is not None and address_id is not None):
+        return JSONResponse({'status': 'fail', 'detail': 'one of address_id or customer_id must be provided'}, 422)
+    if reason is None or appeal_phone is None or appeal_type is None and type in (37, 38):
+        return JSONResponse({'status': 'fail', 'detail': 'Reason, appeal_phone and appeal_type must be provided for task with type 37 or 38'}, 422)
 
     list_divisions = str_to_list(divisions)
-    if box:
-        id = api_call(
-            'task', 'add',
-            f'work_typer=38&work_datedo={get_current_time()}&author_employee_id={author_id}'
-            f'&address_id={address_id}&opis={description}&division={list_to_str(list_divisions)}'
-            f'&deadline_hour=72&customer_id={customer_id}'
-        )['Id']
-    else:
-        id = api_call(
-            'task', 'add',
-            f'work_typer=37&work_datedo={get_current_time()}&author_employee_id={author_id}'
-            f'&opis={description}&division={list_to_str(list_divisions)}&customer_id={customer_id}'
-            f'&deadline_hour=72'
-        )['Id']
+    id = api_call(
+        'task', 'add',
+        f'work_typer={type}&work_datedo={get_current_time()}&author_employee_id={author_id}'
+        f'&address_id={address_id}&opis={description}&division_id={list_to_str(list_divisions)}'
+        f'&deadline_hour=72&customer_id={customer_id}'
+    )['Id']
 
-    if reason:
-        set_additional_data(17, 33 if box else 30, id, reason)
-    if phone:
-        set_additional_data(17, 29, id, phone)
-    if type:
-        set_additional_data(17, 28, id, type)
+    if type == 37:
+        set_additional_data(17, 30, id, reason)
+        set_additional_data(17, 29, id, appeal_phone)
+        set_additional_data(17, 28, id, appeal_type)
+    elif type == 38:
+        set_additional_data(17, 33, id, reason)
+        set_additional_data(17, 29, id, appeal_phone)
+        set_additional_data(17, 28, id, appeal_type)
+
     if description:
         api_call('task', 'comment_add', f'id={id}&comment={description}&employee_id={author_id}')
     return {

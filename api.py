@@ -20,6 +20,21 @@ def api_call(cat: str, action: str, data: str = '', timeout=15) -> dict:
     """
     return get(f'{api}{cat}&action={action}&{data}', verify=False, timeout=timeout).json()
 
+# experimental query params
+# def api_call(cat: str, action: str, timeout=15, **params: dict[str, str | int | float]) -> dict:
+#     """Base UserSide API call
+
+#     Args:
+#         cat (str): category
+#         action (str): action
+#         **params: query parameters.
+
+#     Returns:
+#         dict: API result
+#     """
+#     api_params = '&'.join([f'{key}={value}' for key, value in zip(params.keys(), params.values())])
+#     return get(f'{api}{cat}&action={action}&{api_params}', verify=False, timeout=timeout).json()
+
 def set_additional_data(category, field, id , value):
     """Set additional data value"""
     api_call('additional_data', 'change_value', f'cat_id={category}&field_id={field}&object_id=\

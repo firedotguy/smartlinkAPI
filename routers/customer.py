@@ -141,7 +141,6 @@ def api_get_customer(request: Request, id: int):
     #             })
     # else:
     #     tasks = []
-
     return {
         'status': 'success',
         'data': {
@@ -168,14 +167,14 @@ def api_get_customer(request: Request, id: int):
             # ONT
             'olt_id': olt_id,
             'sn': extract_sn(customer['full_name']),
-            'ip': str(IPv4Address(int(list(customer['ip_mac'].values())[0]['ip']))) if list(customer.get('ip_mac', {}).values())[0].get('ip') else None,
-            'mac': format_mac(list(customer.get('ip_mac').values())[0].get('mac')),
+            'ip': str(IPv4Address(int(list(customer['ip_mac'].values())[0]['ip']))) if list(customer.get('ip_mac', {'': {}}).values())[0].get('ip') else None,
+            'mac': format_mac(list(customer.get('ip_mac', {'': {}}).values())[0].get('mac')),
             # 'onu_level': get_ont_data(extract_sn(customer['full_name'])),
 
             # billing
             'has_billing': bool(customer.get('is_in_billing', False)),
             'billing': {
-                'id': int(customer['billing_id']) if 'billing_id' in customer else None,
+                'id': int(customer['billing_id']) if 'billing_id' in customer and customer['billing_id'] else None,
                 'crc': customer.get('crc_billing')
             },
             'balance': customer['balance'],
