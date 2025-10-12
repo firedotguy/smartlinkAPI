@@ -133,25 +133,50 @@ def api_post_task(
 ):
     if (customer_id is None and address_id is None) or (customer_id is not None and address_id is not None):
         return JSONResponse({'status': 'fail', 'detail': 'one of address_id or customer_id must be provided'}, 422)
-    if reason is None or appeal_phone is None or appeal_type is None and type in (37, 38):
-        return JSONResponse({'status': 'fail', 'detail': 'Reason, appeal_phone and appeal_type must be provided for task with type 37 or 38'}, 422)
+    if (reason is None or appeal_phone is None or appeal_type is None) and type in (37, 46, 53):
+        return JSONResponse({'status': 'fail', 'detail': 'Reason, appeal_phone and appeal_type must be provided for task with type 37, 46 or 53'}, 422)
+    if (appeal_phone is None) and type == 60:
+        return JSONResponse({'status': 'fail', 'detail': 'Appeal_phone must be provided for task with type 60'}, 422)
+    if (reason is None or appeal_type is None) and type == 38:
+        return JSONResponse({'status': 'fail', 'detail': 'Reason and appeal_type must be provided for task with type 38'}, 422)
+    if (reason is None or appeal_phone is None) and type == 48:
+        return JSONResponse({'status': 'fail', 'detail': 'Reason and appeal_phone must be provided for task with type 48'}, 422)
+
 
     list_divisions = str_to_list(divisions)
-    id = api_call(
-        'task', 'add',
-        f'work_typer={type}&work_datedo={get_current_time()}&author_employee_id={author_id}'
-        f'&address_id={address_id}&opis={description}&division_id={list_to_str(list_divisions)}'
-        f'&deadline_hour=72&customer_id={customer_id}'
-    )['Id']
+    params = [
+        f'work_typer={type}',
+        f'work_datedo={get_current_time()}',
+        f'deadline_hour=72',
+        f'division_id={list_to_str(list_divisions)}'
+    ]
 
-    if type == 37:
+    if author_id:
+        params.append(f'author_employee_id={author_id}')
+    if address_id:
+        params.append(f'address_id={address_id}')
+    if description:
+        params.append(f'opis={description}')
+    if customer_id:
+        params.append(f'customer_id={customer_id}')
+
+    query_string = '&'.join(params)
+    print(query_string)
+
+    id = api_call('task', 'add', query_string)['Id']
+
+    if type in (37, 46, 53):
         set_additional_data(17, 30, id, reason)
         set_additional_data(17, 29, id, appeal_phone)
         set_additional_data(17, 28, id, appeal_type)
-    elif type == 38:
-        set_additional_data(17, 33, id, reason)
+    elif type == 60:
         set_additional_data(17, 29, id, appeal_phone)
+    elif type == 38:
+        set_additional_data(17, 30, id, reason)
         set_additional_data(17, 28, id, appeal_type)
+    elif type == 48:
+        set_additional_data(17, 30, id, reason)
+        set_additional_data(17, 29, id, appeal_phone)
 
     if description:
         api_call('task', 'comment_add', f'id={id}&comment={description}&employee_id={author_id}')
