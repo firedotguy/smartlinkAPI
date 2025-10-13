@@ -22,7 +22,7 @@ def api_get_inventory(
 
     named_items = []
     if get_names:
-        names = api_call('inventory', 'get_inventory_catalog', f'id={list_to_str([str(item['inventory_type_id']) for item in items])}')['data'].values()
+        names = api_call('inventory', 'get_inventory_catalog', f'id={list_to_str([str(item["inventory_type_id"]) for item in items])}')['data'].values()
 
         for item in items:
             name = [name for name in names if name['id'] == item['inventory_type_id']][0]

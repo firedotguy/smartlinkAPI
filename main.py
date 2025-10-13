@@ -85,7 +85,7 @@ async def check_api_key(request: Request, call_next):
     url = request.url.path.rstrip('/')
     if 'apikey' not in request.query_params:
         return JSONResponse({'status': 'fail', 'detail': 'no api key'}, 403)
-    if url in ('/favicon.ico', '') and request.query_params.get('apikey') != APIKEY:
+    if url in ('/favicon.ico', '') and request.query_params['apikey'] != APIKEY:
         return JSONResponse({'status': 'fail', 'detail': 'invalid api key'}, 401)
     return await call_next(request)
 
