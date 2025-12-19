@@ -160,10 +160,7 @@ def api_post_task(
     if customer_id:
         params.append(f'customer_id={customer_id}')
 
-    query_string = '&'.join(params)
-    print(query_string)
-
-    id = api_call('task', 'add', query_string)['Id']
+    id = api_call('task', 'add', '&'.join(params))['Id']
 
     if type in (37, 46, 53):
         set_additional_data(17, 30, id, reason)
@@ -190,10 +187,17 @@ def api_get_tasks(
     customer_id: int | None = None,
     get_data: bool = True,
     get_employee_names: bool = True,
+    get_count: bool = True, # get total count without limit/skip (requires 1 more api call if limit\skip provided)
+    limit: int | None = None, # task count to abort (eg. "5" means return 5 tasks even if actually there are 6 tasks)
+    skip: int | None = None # skip tasks (for "Load more" button)
 ):
     tasks = []
     if customer_id is not None:
-        tasks = list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer_id}')['list'])))
+        tasks = list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer_id}{f"&limit={limit}" if limit else ""}{f"&offset={skip}" if skip else ""}')['list'])))
+        if (limit or skip) and get_count:
+            tasks_count = api_call('task', 'get_list', f'customer_id={customer_id}')['count']
+        else:
+            tasks_count = len(tasks)
     else:
         return JSONResponse({'status': 'fail', 'detail': 'no filters provided'}, 422)
 
@@ -276,5 +280,7 @@ def api_get_tasks(
 
     return {
         'status': 'success',
-        'data': tasks_data or tasks
+        'data': tasks_data or tasks,
+        'count': tasks_count,
+        'limit': tasks_count > limit + (skip or 0) if limit else False # should "load more" button be visible?
     }
