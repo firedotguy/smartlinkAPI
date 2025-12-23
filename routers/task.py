@@ -188,7 +188,7 @@ def api_get_tasks(
     get_data: bool = True,
     get_employee_names: bool = True,
     get_count: bool = True, # get total count without limit/skip (requires 1 more api call if limit\skip provided)
-    limit: int | None = None, # task count to abort (eg. "5" means return 5 tasks even if actually there are 6 tasks)
+    limit: int | None = None, # task count to return (eg. "5" means return 5 tasks even if actually there are 6 tasks)
     skip: int | None = None # skip tasks (for "Load more" button)
 ):
     tasks = []

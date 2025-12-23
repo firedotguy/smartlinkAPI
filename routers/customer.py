@@ -10,34 +10,48 @@ from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extra
     parse_agreement, status_to_str, format_mac
 
 router = APIRouter(prefix='/customer')
+PHONE_LENGTH = 9
 
 @router.get('/search')
 def api_get_customer_search(query: str):
+    customer = {}
     customers = []
-    if query.isdigit():
-        customer = api_call('customer', 'get_customer_id',
-            f'data_typer=agreement_number&data_value={query}')
-        if 'Id' in customer:
-            customers = [str(customer['Id'])]
+    search_type = 'default'
+
+    if query.isdigit() and len(query) >= PHONE_LENGTH:
+        customer = api_call('customer', 'get_customer_id', f'data_typer=phone&data_value={query}')
+        search_type ='phone'
+    elif query.isdigit():
+        customer = api_call('customer', 'get_customer_id', f'data_typer=agreement_number&data_value={query}')
+        search_type = 'agreement'
     else:
-        customers = list(map(str, api_call('customer', 'get_customers_id',
-            f'name={query}&is_like=1&limit=10')['data']))
+        customers = list(map(str, api_call('customer', 'get_customers_id', f'name={query}&is_like=1&limit=10')['data']))
+        search_type = 'name'
 
-    customer_data = []
-    if len(customers) > 0:
-        customer_data = [{
-            'id': customer['id'],
-            'name': remove_sn(customer['full_name']),
-            'agreement': parse_agreement(customer['agreement'][0]['number']),
-            'status': status_to_str(customer['state_id'])
-        } for customer in normalize_items(api_call('customer', 'get_data',
-            f'id={list_to_str(customers)}'))]
+    if 'Id' in customer:
+        customers = [str(customer['Id'])]
 
-    return {
-        'status': 'success',
-        'customers': customer_data,
-        'search_type': 'agreement' if query.isdigit() else 'name'
-    }
+    if customers:
+        customers = [
+            {
+                'id': customer['id'],
+                'name': remove_sn(customer['full_name']),
+                'agreement': parse_agreement(customer['agreement'][0]['number']),
+                'status': status_to_str(customer['state_id'])
+            }
+            for customer in normalize_items(api_call('customer', 'get_data', f'id={list_to_str(customers)}'))
+        ]
+        return {
+            'status': 'success',
+            'customers': customers,
+            'search_type': search_type
+        }
+
+    return JSONResponse({
+        'status': 'fail',
+        'detail': 'not found',
+        'search_type': search_type
+    }, 404)
 
 
 # TODO: divide api calls
