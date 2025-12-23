@@ -193,7 +193,7 @@ def api_get_tasks(
 ):
     tasks = []
     if customer_id is not None:
-        tasks = list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer_id}{f"&limit={limit}" if limit else ""}{f"&offset={skip}" if skip else ""}')['list'])))
+        tasks = list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer_id}&order_by=date_add&{f"&limit={limit}" if limit else ""}{f"&offset={skip}" if skip else ""}')['list'])))
         if (limit or skip) and get_count:
             tasks_count = api_call('task', 'get_list', f'customer_id={customer_id}')['count']
         else:
