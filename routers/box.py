@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from api import api_call
-from utils import extract_sn, normalize_items, remove_sn, status_to_str, list_to_str, str_to_list
+from utils import extract_sn, normalize_items, remove_sn, status_to_str, list_to_str, str_to_list, get_coordinates
 
 router = APIRouter(prefix='/box')
 
@@ -46,6 +46,9 @@ def api_get_box(id: int, get_onu_level: bool = False, get_tasks: bool = False):
             'tasks': list(map(int, str_to_list(
                 api_call('task', 'get_list', f'house_id={id}&state_id=18,3,17,11,1,16,19')['list']
             ))) if get_tasks else None,
+            'manager_id': house.get('manage_employee_id'),
+            'coord': get_coordinates(house['coordinates']),
+            'active': not house.get('is_not_in_use', False),
             'customers': customers
         }
     return JSONResponse({

@@ -1,5 +1,6 @@
 """Simple utils like parse agreement or build 2 gis link"""
 from datetime import datetime as dt
+from functools import reduce
 
 from urllib.parse import urljoin
 
@@ -182,3 +183,9 @@ def format_mac(mac: str | None) -> str | None:
     if mac is None:
         return
     return ':'.join(mac.replace('-', '')[i:i + 2] for i in range(0, len(mac.replace('-', '')), 2))
+
+def get_coordinates(polygon: list[list[float]]) -> list[float]:
+    points = polygon[:-1]
+    lats = [p[0] for p in points]
+    lons = [p[1] for p in points]
+    return [sum(lats) / len(lats), sum(lons) / len(lons)]
