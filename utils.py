@@ -189,3 +189,6 @@ def get_coordinates(polygon: list[list[float]]) -> list[float]:
     lats = [p[0] for p in points]
     lons = [p[1] for p in points]
     return [sum(lats) / len(lats), sum(lons) / len(lons)]
+
+def get_box_map_link(coords: list[float], box_id: int):
+    return f'https://us.neotelecom.kg/map/show?opt_wh=1&by_building={box_id}&is_show_center_marker=1@{coords[0]},{coords[1]},18z'
