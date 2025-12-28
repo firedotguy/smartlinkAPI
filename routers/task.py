@@ -31,7 +31,7 @@ def api_get_task(id: int, get_employee_names: bool = True):
                                 .get('data', {}).get(str(comment['employee_id']), {}).get('name')
                                 if get_employee_names else None)
                     } if comment.get('employee_id') else None,
-                    'content': comment['comment']
+                    'content': unescape(comment['comment'])
                 } for comment in task.get('comments', {}).values()
             ],
             'timestamps': {
@@ -217,7 +217,7 @@ def api_get_tasks(
                                     .get('data', {}).get(str(comment['employee_id']), {}).get('name')
                                     if get_employee_names else None)
                         } if comment.get('employee_id') else None,
-                        'content': comment['comment']
+                        'content': unescape(comment['comment'])
                     } for comment in task.get('comments', {}).values()
                 ],
                 'timestamps': {
