@@ -1,5 +1,6 @@
 from html import unescape
 from ipaddress import IPv4Address
+from datetime import datetime
 
 from fastapi import APIRouter
 from fastapi.requests import Request
@@ -8,6 +9,7 @@ from fastapi.responses import JSONResponse
 from api import api_call
 from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn,\
     parse_agreement, status_to_str, format_mac
+from tariff import calc_disconnect
 
 router = APIRouter(prefix='/customer')
 PHONE_LENGTH = 9
@@ -62,7 +64,7 @@ def api_get_customer(request: Request, id: int):
         return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, 404)
 
     tariffs = [
-        {'id': int(tariff['id']), 'name': request.app.state.tariffs[tariff['id']]}
+        {'id': int(tariff['id']), 'name': request.app.state.tariffs[tariff['id']].content}
         for tariff in customer['tariff']['current'] if tariff['id']
     ]
 
@@ -95,66 +97,13 @@ def api_get_customer(request: Request, id: int):
     else:
         olt_id = olt['finish']['object_id']
 
+    will_disconnect = calc_disconnect(
+        [request.app.state.tariffs[tariff['id']] for tariff in customer['tariff']['current'] if tariff['id']],
+        customer['balance'], datetime.strptime(customer['date_connect'], '%Y-%m-%d')
+    ) if customer.get('date_connect') else None
+    if will_disconnect:
+        will_disconnect = will_disconnect.strftime('%Y-%m-%d')
 
-    # INVENTORY
-    # items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')\
-    #     .get('data', {})
-    # if isinstance(items, dict):
-    #     items = items.values()
-
-    # item_names = [
-    #     {
-    #         'id': str(item['id']),
-    #         'name': unescape(item['name']),
-    #         'catalog': item['inventory_section_catalog_id']
-    #     }
-    #     for item in api_call('inventory', 'get_inventory_catalog',
-    #         f'id={list_to_str([str(i["inventory_type_id"]) for i in items])}')['data'].values()
-    # ]
-    # inventory = []
-    # for item in items:
-    #     item_name = [i for i in item_names if i['id'] == str(item['inventory_type_id'])][0]
-    #     inventory.append({
-    #         'id': item['id'],
-    #         'catalog_id': item['inventory_type_id'],
-    #         'name': item_name['name'],
-    #         'amount': item['amount'],
-    #         'category_id': item_name['catalog'],
-    #         'sn': item['serial_number']
-    #     })
-
-
-    # TASK
-    # tasks_id = str_to_list(api_call('task', 'get_list', f'customer_id={id}')['list'])
-    # if tasks_id:
-    #     tasks_data = normalize_items(api_call('task', 'show', f'id={list_to_str(tasks_id)}'))
-    #     tasks = []
-    #     for task in tasks_data:
-    #         dates = {}
-    #         if 'create' in task['date']:
-    #             dates['create'] = task['date']['create']
-    #         if 'update' in task['date']:
-    #             dates['update'] = task['date']['update']
-    #         if 'complete' in task['date']:
-    #             dates['complete'] = task['date']['complete']
-    #         if task['type']['name'] != 'Обращение абонента' and \
-    #             task['type']['name'] != 'Регистрация звонка':
-    #             tasks.append({
-    #                 'id': task['id'],
-    #                 'customer_id': task['customer'][0],
-    #                 'employee_id': list(task['staff']['employee'].values())[0]
-    #                     if 'staff' in task and 'employee' in task['staff'] else None,
-    #                 'name': task['type']['name'],
-    #                 'status': {
-    #                     'id': task['state']['id'],
-    #                     'name': task['state']['name'],
-    #                     'system_id': task['state']['system_role']
-    #                 },
-    #                 'address': task['address']['text'],
-    #                 'dates': dates
-    #             })
-    # else:
-    #     tasks = []
     return {
         'status': 'success',
         'data': {
@@ -175,9 +124,6 @@ def api_get_customer(request: Request, id: int):
             'is_disabled': bool(customer.get('is_disable', False)),
             'is_potential': bool(customer.get('is_potential', False)),
 
-            # 'inventory': inventory,
-            # 'tasks': tasks,
-
             # ONT
             'olt_id': olt_id,
             'sn': extract_sn(customer['full_name']),
@@ -188,7 +134,7 @@ def api_get_customer(request: Request, id: int):
             # billing
             'has_billing': bool(customer.get('is_in_billing', False)),
             'billing': {
-                'id': int(customer['billing_id']) if 'billing_id' in customer and customer['billing_id'] else None,
+                'id': int(customer['billing_id']) if customer.get('billing_id') else None,
                 'crc': customer.get('crc_billing')
             },
             'balance': customer['balance'],
@@ -205,6 +151,15 @@ def api_get_customer(request: Request, id: int):
             'geodata': geodata,
 
             # timestamps
+            'created_at': customer.get('date_create'),
+            'connected_at': customer.get('date_connect'),
+            'agreed_at': datetime.strptime(customer['agreement'][0]['date'], '%d.%m.%Y').strftime('%Y-%m-%d'),
+            'positive_balance_at': customer.get('date_positive_balance'),
+            'last_active_at': customer.get('date_activity'),
+            'last_inet_active_at': customer.get('date_activity_inet'),
+            'will_disconnect_at': will_disconnect,
+
+            # OLD (for backward compitability)
             'timestamps': {
                 'created_at': customer.get('date_create'),
                 'connected_at': customer.get('date_connect'),
