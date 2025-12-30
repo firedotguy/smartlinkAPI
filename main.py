@@ -15,12 +15,13 @@ from routers import task
 from routers import attach
 from routers import inventory
 from api import api_call
+from tariff import Tariff
 from config import API_KEY as APIKEY
 
 app = FastAPI(title='SmartLinkAPI')
 
 app.state.tariffs = {
-    tariff['billing_uuid']: unescape(tariff['name'])
+    tariff['billing_uuid']: Tariff(unescape(tariff['name']))
     for tariff in api_call('tariff', 'get')['data'].values()
 }
 app.state.customer_groups = {
