@@ -12,7 +12,7 @@ def api_get_box(
     get_onu_level: bool = False,
     get_tasks: bool = False,
     limit: int | None = None,
-    skip: int | None = None
+    exclude_customer_ids: list[int] = []
 ):
     def _get_onu_level(name) -> float | None:
         if extract_sn(name) is None:
@@ -45,24 +45,29 @@ def api_get_box(
         return JSONResponse({'status': 'fail', 'detail': 'box not found'}, 404)
 
     house = list(house_data.values())[0]
-    customer_ids = api_call('customer', 'get_customers_id', f'house_id={id}').get('data', [])
+    customer_ids: list = api_call('customer', 'get_customers_id', f'house_id={id}').get('data', [])
+    for customer in exclude_customer_ids:
+        if customer in customer_ids:
+            customer_ids.remove(customer)
     customers_count = len(customer_ids)
 
     customers = []
+    fetch_customer_ids = []
     if customer_ids:
-        if skip:
-            customer_ids = customer_ids[skip:]
+        fetch_customer_ids = customer_ids
         if limit:
-            customer_ids = customer_ids[:limit]
+            fetch_customer_ids = customer_ids[:limit]
+
         raw_customers = normalize_items(
-            api_call('customer', 'get_data', f'id={list_to_str(customer_ids)}')
+            api_call('customer', 'get_data', f'id={list_to_str(fetch_customer_ids)}')
         )
         customers = [c for c in map(_build_customer, raw_customers) if c is not None]
 
     onu_levels = [c['onu_level'] for c in customers if c['onu_level']]
     avg_onu_level = sum(onu_levels) / len(onu_levels) if onu_levels else None
 
-    coords = get_coordinates(house['coordinates']) if house.get('coordinates') else None
+    coords = get_coordinates(house.get('coordinates'))
+    map_link = get_box_map_link(coords, id)
 
     return {
         'status': 'success',
@@ -74,8 +79,8 @@ def api_get_box(
         'manager_id': house.get('manage_employee_id'),
         'coords': coords,
         'active': not house.get('is_not_use', True),
-        'map_link': get_box_map_link(coords, id) if coords else None,
+        'map_link': map_link,
         'customers': customers,
-        'customers_count': customers_count,
-        'customers_limit': customers_count > limit + (skip or 0) if limit else False
+        'remaining_customer_ids': [customer_id for customer_id in customer_ids if customer_id not in fetch_customer_ids], # all ids exclude fetched
+        'customers_count': customers_count
     }

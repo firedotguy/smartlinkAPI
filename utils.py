@@ -184,11 +184,15 @@ def format_mac(mac: str | None) -> str | None:
         return
     return ':'.join(mac.replace('-', '')[i:i + 2] for i in range(0, len(mac.replace('-', '')), 2))
 
-def get_coordinates(polygon: list[list[float]]) -> list[float]:
+def get_coordinates(polygon: list[list[float]] | None) -> list[float] | None:
+    if polygon is None:
+        return None
     points = polygon[:-1]
     lats = [p[0] for p in points]
     lons = [p[1] for p in points]
     return [sum(lats) / len(lats), sum(lons) / len(lons)]
 
-def get_box_map_link(coords: list[float], box_id: int):
+def get_box_map_link(coords: list[float] | None, box_id: int) -> str | None:
+    if coords is None:
+        return None
     return f'https://us.neotelecom.kg/map/show?opt_wh=1&by_building={box_id}&is_show_center_marker=1@{coords[0]},{coords[1]},18z'
