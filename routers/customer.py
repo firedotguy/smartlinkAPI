@@ -95,66 +95,6 @@ def api_get_customer(request: Request, id: int):
     else:
         olt_id = olt['finish']['object_id']
 
-
-    # INVENTORY
-    # items = api_call('inventory', 'get_inventory_amount', f'location=customer&object_id={id}')\
-    #     .get('data', {})
-    # if isinstance(items, dict):
-    #     items = items.values()
-
-    # item_names = [
-    #     {
-    #         'id': str(item['id']),
-    #         'name': unescape(item['name']),
-    #         'catalog': item['inventory_section_catalog_id']
-    #     }
-    #     for item in api_call('inventory', 'get_inventory_catalog',
-    #         f'id={list_to_str([str(i["inventory_type_id"]) for i in items])}')['data'].values()
-    # ]
-    # inventory = []
-    # for item in items:
-    #     item_name = [i for i in item_names if i['id'] == str(item['inventory_type_id'])][0]
-    #     inventory.append({
-    #         'id': item['id'],
-    #         'catalog_id': item['inventory_type_id'],
-    #         'name': item_name['name'],
-    #         'amount': item['amount'],
-    #         'category_id': item_name['catalog'],
-    #         'sn': item['serial_number']
-    #     })
-
-
-    # TASK
-    # tasks_id = str_to_list(api_call('task', 'get_list', f'customer_id={id}')['list'])
-    # if tasks_id:
-    #     tasks_data = normalize_items(api_call('task', 'show', f'id={list_to_str(tasks_id)}'))
-    #     tasks = []
-    #     for task in tasks_data:
-    #         dates = {}
-    #         if 'create' in task['date']:
-    #             dates['create'] = task['date']['create']
-    #         if 'update' in task['date']:
-    #             dates['update'] = task['date']['update']
-    #         if 'complete' in task['date']:
-    #             dates['complete'] = task['date']['complete']
-    #         if task['type']['name'] != 'Обращение абонента' and \
-    #             task['type']['name'] != 'Регистрация звонка':
-    #             tasks.append({
-    #                 'id': task['id'],
-    #                 'customer_id': task['customer'][0],
-    #                 'employee_id': list(task['staff']['employee'].values())[0]
-    #                     if 'staff' in task and 'employee' in task['staff'] else None,
-    #                 'name': task['type']['name'],
-    #                 'status': {
-    #                     'id': task['state']['id'],
-    #                     'name': task['state']['name'],
-    #                     'system_id': task['state']['system_role']
-    #                 },
-    #                 'address': task['address']['text'],
-    #                 'dates': dates
-    #             })
-    # else:
-    #     tasks = []
     return {
         'status': 'success',
         'data': {
@@ -174,9 +114,6 @@ def api_get_customer(request: Request, id: int):
             'is_corporate': bool(customer.get('flag_corporate', False)),
             'is_disabled': bool(customer.get('is_disable', False)),
             'is_potential': bool(customer.get('is_potential', False)),
-
-            # 'inventory': inventory,
-            # 'tasks': tasks,
 
             # ONT
             'olt_id': olt_id,
