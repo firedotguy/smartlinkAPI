@@ -185,7 +185,7 @@ def format_mac(mac: str | None) -> str | None:
     return ':'.join(mac.replace('-', '')[i:i + 2] for i in range(0, len(mac.replace('-', '')), 2))
 
 def get_coordinates(polygon: list[list[float]] | None) -> list[float] | None:
-    if polygon is None:
+    if not polygon:
         return None
     points = polygon[:-1]
     lats = [p[0] for p in points]
