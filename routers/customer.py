@@ -134,13 +134,11 @@ def _process_customer(request_tariffs: list, request_groups: list, customer: dic
         'geodata': geodata,
 
         # timestamps
-        'timestamps': {
-            'created_at': customer.get('date_create'),
-            'connected_at': customer.get('date_connect'),
-            'positive_balance_at': customer.get('date_positive_balance'),
-            'last_active_at': customer.get('date_activity'),
-            'last_inet_active_at': customer.get('date_activity_inet')
-        }
+        'created_at': customer.get('date_create'),
+        'connected_at': customer.get('date_connect'),
+        'positive_balance_at': customer.get('date_positive_balance'),
+        'last_active_at': customer.get('date_activity'),
+        'last_inet_active_at': customer.get('date_activity_inet')
     }
 
 

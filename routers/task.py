@@ -220,13 +220,11 @@ def api_get_tasks(
                         'content': unescape(comment['comment'])
                     } for comment in task.get('comments', {}).values()
                 ],
-                'timestamps': {
-                    'created_at': task['date'].get('create'),
-                    'planned_at': task['date'].get('todo'),
-                    'updated_at': task['date'].get('update'),
-                    'completed_at': task['date'].get('complete'),
-                    'deadline': task['date'].get('runtime_individual_hour')
-                },
+                'created_at': task['date'].get('create'),
+                'planned_at': task['date'].get('todo'),
+                'updated_at': task['date'].get('update'),
+                'completed_at': task['date'].get('complete'),
+                'deadline': task['date'].get('runtime_individual_hour'),
                 'addata': {
                     'reason': task['additional_data'].get('30', {}).get('value'),
                     'solve': task['additional_data'].get('36', {}).get('value'),
