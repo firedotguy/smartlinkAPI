@@ -1,3 +1,6 @@
+from json import loads
+from json.decoder import JSONDecodeError
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
@@ -12,7 +15,7 @@ def api_get_box(
     get_onu_level: bool = False,
     get_tasks: bool = False,
     limit: int | None = None,
-    exclude_customer_ids: list[int] = []
+    exclude_customer_ids: str = '[]'
 ):
     def _get_onu_level(name) -> float | None:
         if extract_sn(name) is None:
@@ -40,13 +43,22 @@ def api_get_box(
             'tasks': _get_tasks('customer', customer['id']) if get_tasks else None
         }
 
+    exclude_ids = []
+    if exclude_customer_ids:
+        try:
+            exclude_ids: list[int] = loads(exclude_customer_ids)
+            if not (isinstance(exclude_ids, list) and all(isinstance(customer, int) for customer in exclude_ids)):
+                return JSONResponse({'status': 'fail', 'detail': 'incorrect type of exclude_customer_ids param'}, 422)
+        except JSONDecodeError:
+            return JSONResponse({'status': 'fail', 'detail': 'unable to parse exclude_customer_ids param'}, 422)
+
     house_data = api_call('address', 'get_house', f'building_id={id}').get('data')
     if not house_data:
         return JSONResponse({'status': 'fail', 'detail': 'box not found'}, 404)
 
     house = list(house_data.values())[0]
     customer_ids: list = api_call('customer', 'get_customers_id', f'house_id={id}').get('data', [])
-    for customer in exclude_customer_ids:
+    for customer in exclude_ids:
         if customer in customer_ids:
             customer_ids.remove(customer)
     customers_count = len(customer_ids)
