@@ -193,7 +193,9 @@ def api_get_tasks(
 ):
     tasks = []
     if customer_id is not None:
-        tasks = list(map(int, str_to_list(api_call('task', 'get_list', f'customer_id={customer_id}&order_by=date_add&{f"&limit={limit}" if limit else ""}{f"&offset={skip}" if skip else ""}')['list'])))
+        tasks = list(map(int, str_to_list(
+            api_call('task', 'get_list', f'customer_id={customer_id}&order_by=date_add&{f"&limit={limit}" if limit else ""}{f"&offset={skip}" if skip else ""}')['list']
+        )))
         if (limit or skip) and get_count:
             tasks_count = api_call('task', 'get_list', f'customer_id={customer_id}')['count']
         else:
@@ -213,9 +215,8 @@ def api_get_tasks(
                         'created_at': comment['dateAdd'],
                         'author': {
                             'id': comment['employee_id'],
-                            'name': (api_call('employee', 'get_data', f'id={comment["employee_id"]}')
-                                    .get('data', {}).get(str(comment['employee_id']), {}).get('name')
-                                    if get_employee_names else None)
+                            'name': api_call('employee', 'get_data', f'id={comment["employee_id"]}').get('data', {}).get(str(comment['employee_id']), {}).get('name')
+                                if get_employee_names else None
                         } if comment.get('employee_id') else None,
                         'content': unescape(comment['comment'])
                     } for comment in task.get('comments', {}).values()
@@ -242,8 +243,7 @@ def api_get_tasks(
                         'type': task['additional_data'].get('28', {}).get('value')
                     },
                 } if task['type']['id'] == 38 else {
-                    'coord': list(map(float, task['additional_data']['7']['value'].split(',')))
-                        if '7' in task['additional_data'] else None,
+                    'coord': list(map(float, task['additional_data']['7']['value'].split(','))) if '7' in task['additional_data'] else None,
                     'tariff': task['additional_data'].get('25', {}).get('value'),
                     'connect_type': task['additional_data'].get('27', {}).get('value')
                 } if task['type']['id'] == 28 else None,
@@ -253,9 +253,8 @@ def api_get_tasks(
                 },
                 'author': {
                     'id': task['author_employee_id'],
-                    'name': (api_call('employee', 'get_data', f'id={task["author_employee_id"]}')
-                        .get('data', {}).get(str(task['author_employee_id']), {}).get('name')
-                        if get_employee_names else None)
+                    'name': api_call('employee', 'get_data', f'id={task["author_employee_id"]}').get('data', {}).get(str(task['author_employee_id']), {}).get('name')
+                        if get_employee_names else None
                 },
                 'status': {
                     'id': task['state']['id'],
@@ -265,8 +264,7 @@ def api_get_tasks(
                 'address': {
                     'id': task['address'].get('addressId'),
                     'name': task['address'].get('text'),
-                    'apartment': unescape(task['address']['apartment'])
-                        if task['address'].get('apartment') else None
+                    'apartment': unescape(task['address']['apartment']) if task['address'].get('apartment') else None
                 },
                 'customer': {
                     'id': customer['id'],

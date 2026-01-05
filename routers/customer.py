@@ -8,8 +8,7 @@ from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 
 from api import api_call
-from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn,\
-    parse_agreement, status_to_str, format_mac
+from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn, parse_agreement, status_to_str, format_mac
 
 router = APIRouter(prefix='/customer')
 PHONE_LENGTH = 9

@@ -1,6 +1,5 @@
 """Simple utils like parse agreement or build 2 gis link"""
 from datetime import datetime as dt
-from functools import reduce
 
 from urllib.parse import urljoin
 
@@ -8,14 +7,13 @@ from config import ATTACH_URL
 
 
 def parse_agreement(agreement: str | None) -> int | None:
-    """
-    Parse agreement string into an integer if it contains only digits.
+    """Parse agreement string into an integer if it contains only digits.
 
     Args:
         agreement (str | None): Agreement value as a string.
 
     Returns:
-        int|None: Parsed integer if valid, otherwise None.
+        int | None: Parsed integer if valid, otherwise None.
     """
     if agreement:
         if agreement.isdigit():
@@ -23,8 +21,7 @@ def parse_agreement(agreement: str | None) -> int | None:
     return None
 
 def remove_sn(data: str) -> str:
-    """
-    Extract the name part from a string formatted like 'name (sn)'.
+    """Extract the name part from a string formatted like 'name (sn)'.
 
     If parentheses are present, the substring before them is returned.
     Otherwise, the original string is returned.
@@ -40,8 +37,7 @@ def remove_sn(data: str) -> str:
     return data
 
 def extract_sn(data: str) -> None | str:
-    """
-    Extract serial number from a string in the format 'name(sn)'.
+    """Extract serial number from a string in the format 'name(sn)'.
 
     If the string ends with '()', it is treated as empty and None is returned.
     Otherwise, the substring inside parentheses is returned.
@@ -58,8 +54,7 @@ def extract_sn(data: str) -> None | str:
         return data.rsplit('(', maxsplit=1)[-1].rstrip().rstrip(')')
 
 def status_to_str(status: int) -> str:
-    """
-    Convert numeric status code to human-readable text.
+    """Convert numeric status code to human-readable text.
 
     Args:
         status (int): Status code (0 = off, 1 = pause, 2 = active).
@@ -78,8 +73,7 @@ def status_to_str(status: int) -> str:
             return 'Неизвестен'
 
 def list_to_str(data: list) -> str:
-    """
-    Join a list of strings into a single comma-separated string.
+    """Join a list of strings into a single comma-separated string.
 
     Args:
         data (list): List of string elements.
@@ -90,8 +84,7 @@ def list_to_str(data: list) -> str:
     return ','.join(map(str, data))
 
 def str_to_list(data: str) -> list:
-    """
-    Convert a comma-separated string into a list of trimmed strings.
+    """Convert a comma-separated string into a list of trimmed strings.
 
     Args:
         data (str): Input string with items separated by commas.
@@ -102,8 +95,7 @@ def str_to_list(data: str) -> list:
     return [item.strip() for item in data.split(",") if item.strip()]
 
 def to_neo_link(lat: float, lon: float) -> str:
-    """
-    Build a NeoTelecom map link from latitude and longitude.
+    """Build a NeoTelecom map link from latitude and longitude.
 
     Args:
         lat (float): Latitude coordinate.
@@ -116,8 +108,7 @@ def to_neo_link(lat: float, lon: float) -> str:
 @{lat},{lon},18z'
 
 def to_2gis_link(lat: float, lon: float) -> str:
-    """
-    Build a 2GIS map link from latitude and longitude.
+    """Build a 2GIS map link from latitude and longitude.
 
     Args:
         lat (float): Latitude coordinate.
@@ -150,8 +141,7 @@ def normalize_items(raw: dict) -> list:
     return [data]
 
 def get_attach_url(path: str) -> str:
-    """
-    Build full attachment URL by joining base and relative path.
+    """Build full attachment URL by joining base and relative path.
 
     Args:
         path (str): Relative path to the attachment.
@@ -162,8 +152,7 @@ def get_attach_url(path: str) -> str:
     return urljoin(ATTACH_URL, path)
 
 def get_current_time() -> str:
-    """
-    Get the current local time formatted as 'YYYY.MM.DD HH:MM:SS'.
+    """Get the current local time formatted as 'YYYY.MM.DD HH:MM:SS'.
 
     Returns:
         str: Current time string.
@@ -171,8 +160,7 @@ def get_current_time() -> str:
     return dt.now().strftime("%Y.%m.%d %H:%M:%S")
 
 def format_mac(mac: str | None) -> str | None:
-    """
-    Format MAC address (insert ":" between every 2 symbols)
+    """Format MAC address (insert ":" between every 2 symbols)
 
     Args:
         mac (str | None): MAC address without ":"
@@ -185,6 +173,14 @@ def format_mac(mac: str | None) -> str | None:
     return ':'.join(mac.replace('-', '')[i:i + 2] for i in range(0, len(mac.replace('-', '')), 2))
 
 def get_coordinates(polygon: list[list[float]] | None) -> list[float] | None:
+    """Get coorinates from polyfon
+
+    Args:
+        polygon (list[list[float]] | None): Polygon
+
+    Returns:
+        list[float] | None: Coordinates as [lat, lon]
+    """
     if not polygon:
         return None
     points = polygon[:-1]
@@ -193,6 +189,15 @@ def get_coordinates(polygon: list[list[float]] | None) -> list[float] | None:
     return [sum(lats) / len(lats), sum(lons) / len(lons)]
 
 def get_box_map_link(coords: list[float] | None, box_id: int) -> str | None:
+    """Get link to box in map
+
+    Args:
+        coords (list[float] | None): Coordinates as [lat, lon]
+        box_id (int): Box id
+
+    Returns:
+        str | None: Link
+    """
     if coords is None:
         return None
     return f'https://us.neotelecom.kg/map/show?opt_wh=1&by_building={box_id}&is_show_center_marker=1@{coords[0]},{coords[1]},18z'

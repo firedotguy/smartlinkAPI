@@ -12,8 +12,7 @@ def api_get_employee_login(login: str, password: str):
     return {
         'status': 'success',
         'correct': result,
-        'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}').get('id')
-            if result else None
+        'id': api_call('employee', 'get_employee_id', f'data_typer=login&data_value={login}').get('id') if result else None
     }
 
 @router.get('/name/{id}')

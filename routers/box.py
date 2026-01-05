@@ -7,7 +7,7 @@ from fastapi.requests import Request
 
 from api import api_call
 from routers.customer import _process_customer
-from utils import extract_sn, normalize_items, remove_sn, status_to_str, list_to_str, str_to_list, get_coordinates, get_box_map_link
+from utils import normalize_items, list_to_str, str_to_list, get_coordinates, get_box_map_link
 
 router = APIRouter(prefix='/box')
 
