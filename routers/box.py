@@ -3,28 +3,23 @@ from json.decoder import JSONDecodeError
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from fastapi.requests import Request
 
 from api import api_call
+from routers.customer import _process_customer
 from utils import extract_sn, normalize_items, remove_sn, status_to_str, list_to_str, str_to_list, get_coordinates, get_box_map_link
 
 router = APIRouter(prefix='/box')
 
 @router.get('/{id}')
 def api_get_box(
+    request: Request,
     id: int,
-    get_onu_level: bool = False,
+    get_olt_data: bool = False,
     get_tasks: bool = False,
     limit: int | None = None,
     exclude_customer_ids: str = '[]'
 ):
-    def _get_onu_level(name) -> float | None:
-        if extract_sn(name) is None:
-            return
-        data = api_call('device', 'get_ont_data', f'id={extract_sn(name)}').get('data')
-        if not isinstance(data, dict):
-            return
-        return data.get('level_onu_rx')
-
     def _get_tasks(entity: str, entity_id: int) -> list[int]:
         res = api_call('task', 'get_list', f'{entity}_id={entity_id}&state_id=18,3,17,11,1,16,19')
         return list(map(int, str_to_list(res.get('list', ''))))
@@ -33,15 +28,16 @@ def api_get_box(
         name = customer.get('full_name')
         if name is None:
             return None
-        return {
-            'id': customer['id'],
-            'name': remove_sn(name),
-            'last_activity': customer.get('date_activity'),
-            'status': status_to_str(customer['state_id']),
-            'sn': extract_sn(name),
-            'onu_level': _get_onu_level(name) if get_onu_level else None,
-            'tasks': _get_tasks('customer', customer['id']) if get_tasks else None
-        }
+        return _process_customer(request.app.state.tariffs, request.app.state.customer_groups, customer, get_olt_data)
+        # {
+        #     'id': customer['id'],
+        #     'name': remove_sn(name),
+        #     'last_activity': customer.get('date_activity'),
+        #     'status': status_to_str(customer['state_id']),
+        #     'sn': extract_sn(name),
+        #     'onu_level': _get_onu_level(name) if get_onu_level else None,
+        #     'tasks': _get_tasks('customer', customer['id']) if get_tasks else None
+        # }
 
     exclude_ids = []
     if exclude_customer_ids:

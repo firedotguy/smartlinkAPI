@@ -56,7 +56,7 @@ def api_get_customer_search(query: str):
     }, 404)
 
 
-def _process_customer(request_tariffs: list, request_groups: list, customer: dict):
+def _process_customer(request_tariffs: list, request_groups: list, customer: dict, get_olt_data: bool = True):
     tariffs = [
         {'id': int(tariff['id']), 'name': request_tariffs[tariff['id']]}
         for tariff in customer['tariff']['current'] if tariff['id']
@@ -77,18 +77,17 @@ def _process_customer(request_tariffs: list, request_groups: list, customer: dic
             geodata['2gis_link'] = to_2gis_link(geodata['coord'][0], geodata['coord'][1])
 
 
-    olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={customer["id"]}&is_finish_data=1')['data']
-
-    if 'finish' not in olt or olt['finish'].get('object_type') != 'switch' and extract_sn(customer['full_name']) is not None:
+    olt_id = None
+    onu_level = None
+    if get_olt_data and extract_sn(customer['full_name']) is not None:
         ont = api_call('device', 'get_ont_data', f'id={extract_sn(customer["full_name"])}')['data']
         if isinstance(ont, dict):
             olt_id = ont.get('device_id')
+            onu_level = ont.get('level_onu_rx')
         else:
-            olt_id = None
-    elif extract_sn(customer['full_name']) is None:
-        olt_id = None
-    else:
-        olt_id = olt['finish']['object_id']
+            olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={customer["id"]}&is_finish_data=1')['data']
+            if olt.get('finish', {}).get('object_type') != 'switch':
+                olt_id = olt['finish']['object_id']
 
     return {
         # main data
@@ -113,7 +112,7 @@ def _process_customer(request_tariffs: list, request_groups: list, customer: dic
         'sn': extract_sn(customer['full_name']),
         'ip': str(IPv4Address(int(list(customer['ip_mac'].values())[0]['ip']))) if list(customer.get('ip_mac', {'': {}}).values())[0].get('ip') else None,
         'mac': format_mac(list(customer.get('ip_mac', {'': {}}).values())[0].get('mac')),
-        # 'onu_level': get_ont_data(extract_sn(customer['full_name'])),
+        'onu_level': onu_level,
 
         # billing
         'has_billing': bool(customer.get('is_in_billing', False)),
@@ -146,14 +145,18 @@ def _process_customer(request_tariffs: list, request_groups: list, customer: dic
 
 
 @router.get('/{id}')
-def api_get_customer(request: Request, id: int):
+def api_get_customer(
+    request: Request,
+    id: int,
+    get_olt_data: bool = False
+):
     customer = api_call('customer', 'get_data', f'id={id}').get('data')
     if customer is None:
         return JSONResponse({'status': 'fail', 'detail': 'customer not found'}, 404)
 
     return {
         'status': 'success',
-        'data': _process_customer(request.app.state.tariffs, request.app.state.customer_groups, customer)
+        'data': _process_customer(request.app.state.tariffs, request.app.state.customer_groups, customer, get_olt_data)
     }
 
 
@@ -176,6 +179,7 @@ def api_get_customers(
     request: Request,
     ids: str | None = None,
     get_data: bool = True,
+    get_olt_data: bool = False,
     limit: int | None = None,
     skip: int | None = None
 ):
@@ -203,7 +207,7 @@ def api_get_customers(
             if customer is None:
                 return JSONResponse({'status': 'fail', 'detail': f'customer {customer_id} not found'}, 404)
 
-            customers_data.append(_process_customer(request.app.state.tariffs, request.app.state.customer_groups, customer))
+            customers_data.append(_process_customer(request.app.state.tariffs, request.app.state.customer_groups, customer, get_olt_data))
 
     return {
         'status': 'success',
