@@ -60,20 +60,21 @@ class Tariff:
 
 def calc_disconnect(tariffs: list[Tariff], balance: float, connected_at: datetime) -> datetime | None:
     base_sum = sum([t.price for t in tariffs]) / 30 # sum per day
-    free = sum([t.free_days for t in tariffs])
-    sale = reduce(lambda a, b: a * b, [t.sale / 100 for t in tariffs if t.type == TariffType.SALE], 0)
+    if base_sum == 0:
+        return None
 
-    saled_sum = (base_sum - base_sum * sale) if sale else base_sum
     sale_tariff = next((t for t in tariffs if t.type == TariffType.SALE), None) # first sale tariff
     now = datetime.now()
     days_since_connect = (now - connected_at).days
+    free_days = sum(t.free_days for t in tariffs)
+    free = max(0, free_days - days_since_connect)
 
-    if sale_tariff and sale_tariff.sale_days > 0:
-        sale_remaining = max(0, sale_tariff.sale_days - days_since_connect)
+    if sale_tariff:
         sale_multiplier = 1 - sale_tariff.sale / 100
+        sale_remaining = max(0, sale_tariff.sale_days - days_since_connect) if sale_tariff.sale_days > 0 else 0
     else:
+        sale_multiplier = 1
         sale_remaining = 0
-        sale_multiplier = 1 if not sale_tariff else 1 - sale_tariff.sale / 100
 
     saled_sum = base_sum * sale_multiplier
 
