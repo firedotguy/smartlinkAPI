@@ -15,12 +15,13 @@ from routers import task
 from routers import attach
 from routers import inventory
 from api import api_call
+from tariff import Tariff
 from config import API_KEY as APIKEY
 
 app = FastAPI(title='SmartLinkAPI')
 
 app.state.tariffs = {
-    tariff['billing_uuid']: unescape(tariff['name'])
+    tariff['billing_uuid']: Tariff(unescape(tariff['name']))
     for tariff in api_call('tariff', 'get')['data'].values()
 }
 app.state.customer_groups = {
@@ -47,8 +48,7 @@ app.state.olts = [
         'host': olt['host'],
         'online': bool(olt['is_online']),
         'location': unescape(olt['location'])
-    } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data']
-        .values()
+    } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data'].values()
 ]
 app.state.divisions = [
     {
