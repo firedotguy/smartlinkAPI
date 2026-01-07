@@ -85,7 +85,7 @@ def _process_customer(request_tariffs: list, request_groups: list, customer: dic
             onu_level = ont.get('level_onu_rx')
         else:
             olt = api_call('commutation', 'get_data', f'object_type=customer&object_id={customer["id"]}&is_finish_data=1')['data']
-            if olt.get('finish', {}).get('object_type') != 'switch':
+            if isinstance(olt, dict) and olt.get('finish', {}).get('object_type') != 'switch':
                 olt_id = olt['finish']['object_id']
 
     return {
