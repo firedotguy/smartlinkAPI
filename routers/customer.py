@@ -2,6 +2,7 @@ from html import unescape
 from ipaddress import IPv4Address
 from json import loads
 from json.decoder import JSONDecodeError
+from datetime import datetime
 
 from fastapi import APIRouter
 from fastapi.requests import Request
@@ -9,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from api import api_call
 from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn, parse_agreement, status_to_str, format_mac
+from tariff import calc_disconnect
 
 router = APIRouter(prefix='/customer')
 PHONE_LENGTH = 9
@@ -88,6 +90,13 @@ def _process_customer(request_tariffs: list, request_groups: list, customer: dic
             if isinstance(olt, dict) and olt.get('finish', {}).get('object_type') != 'switch':
                 olt_id = olt['finish']['object_id']
 
+    will_disconnect = calc_disconnect(
+        [request_tariffs[tariff['id']] for tariff in customer['tariff']['current'] if tariff['id']],
+        customer['balance'], datetime.strptime(customer['date_connect'], '%Y-%m-%d')
+    ) if customer.get('date_connect') else None
+    if will_disconnect:
+        will_disconnect = will_disconnect.strftime('%Y-%m-%d')
+
     return {
         # main data
         'id': customer['id'],
@@ -137,9 +146,9 @@ def _process_customer(request_tariffs: list, request_groups: list, customer: dic
         'connected_at': customer.get('date_connect'),
         'positive_balance_at': customer.get('date_positive_balance'),
         'last_active_at': customer.get('date_activity'),
-        'last_inet_active_at': customer.get('date_activity_inet')
+        'last_inet_active_at': customer.get('date_activity_inet'),
+        'will_disconnect_at': will_disconnect
     }
-
 
 @router.get('/{id}')
 def api_get_customer(
