@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from api import api_call
 from utils import list_to_str, to_2gis_link, to_neo_link, normalize_items, extract_sn, remove_sn, parse_agreement, status_to_str, format_mac
-from tariff import calc_disconnect
+from tariff import calc_disconnect, Tariff
 
 router = APIRouter(prefix='/customer')
 PHONE_LENGTH = 9
@@ -57,9 +57,9 @@ def api_get_customer_search(query: str):
     }, 404)
 
 
-def _process_customer(request_tariffs: list, request_groups: list, customer: dict, get_olt_data: bool = True):
+def _process_customer(request_tariffs: dict[int, Tariff], request_groups: dict, customer: dict, get_olt_data: bool = True):
     tariffs = [
-        {'id': int(tariff['id']), 'name': request_tariffs[tariff['id']]}
+        {'id': int(tariff['id']), 'name': request_tariffs[tariff['id']].content, 'prices': request_tariffs[tariff['id']].to_dict()}
         for tariff in customer['tariff']['current'] if tariff['id']
     ]
 

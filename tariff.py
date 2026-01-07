@@ -57,6 +57,15 @@ class Tariff:
         else:
             self.type = TariffType.NONE
 
+    def to_dict(self) -> dict:
+        return {
+            'price': self.price,
+            'free_days': self.free_days,
+            'sale': self.sale,
+            'sale_days': self.sale_days,
+            'type': self.type.value
+        }
+
 
 def calc_disconnect(tariffs: list[Tariff], balance: float, connected_at: datetime) -> datetime | None:
     base_sum = sum([t.price for t in tariffs]) / 30 # sum per day

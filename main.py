@@ -48,8 +48,7 @@ app.state.olts = [
         'host': olt['host'],
         'online': bool(olt['is_online']),
         'location': unescape(olt['location'])
-    } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data']
-        .values()
+    } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data'].values()
 ]
 app.state.divisions = [
     {
