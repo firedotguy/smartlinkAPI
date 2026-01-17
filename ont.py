@@ -92,7 +92,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ont_info['service_port'] = _parse_service_port(_read_output(channel), ont_info['interface'])
         if ont_info['service_port']:
             sleep(0.07)
-            channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n', 'utf-8'))
+            channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n\n', 'utf-8'))
             ont_info['mac'] = _parse_mac(_read_output(channel))
 
         channel.close()
