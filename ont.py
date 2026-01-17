@@ -263,6 +263,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     if "Command:" in raw:
         raw = raw.split("Command:", 1)[1]
         raw = "\n".join(raw.splitlines()[2:])
+    print(raw)
     for line in raw.splitlines():
         if '#' in line: # prompt lines
             continue
@@ -307,26 +308,26 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
         if is_table_heading: # table next heading line
             line = line[len(table_heading_raw) - len(table_heading_raw.lstrip()):]
             full_line = line
-            print('begin table parse; fields:', table_fields, 'appendixes line:', line)
+            # print('begin table parse; fields:', table_fields, 'appendixes line:', line)
 
             for i, field in enumerate(table_fields):
                 raw_index = _find_all(table_heading_raw.lstrip(), field)[table_fields[:i].count(field)]
-                print('found fields:', _find_all(table_heading_raw.lstrip(), field))
+                # print('found fields:', _find_all(table_heading_raw.lstrip(), field))
 
                 if search(r'\w', full_line[raw_index:raw_index + len(field)]):
-                    print('found non space appendix:', full_line[raw_index:raw_index + len(field)] + '... for', field)
+                    # print('found non space appendix:', full_line[raw_index:raw_index + len(field)] + '... for', field)
                     appendix = line.lstrip().split(' ', maxsplit=1)[0]
-                    print('cleaned appendix:', appendix)
+                    # print('cleaned appendix:', appendix)
                     table_fields[i] += '-' + appendix
-                    print('invoked to field:', table_fields[i])
+                    # print('invoked to field:', table_fields[i])
                     line = line[line.index(appendix) + len(appendix):]
-                    print('line truncated:', line)
+                    # print('line truncated:', line)
 
                 else:
-                    print('found space appendix for', field)
+                    # print('found space appendix for', field)
                     # spaces += len(table_heading_raw[:raw_index]) - len(table_heading_raw[:raw_index].rstrip()) - 1
                     line = line[len(field):]
-                    print('line truncated:', line)
+                    # print('line truncated:', line)
 
     return fields, [table for table in tables if table]
 
@@ -425,7 +426,7 @@ def _parse_mac(raw: str, interface: dict) -> str | None:
         f"{interface['fibre']} /{interface['service']}/{interface['port']}",
         f"{interface['fibre']} /{interface['service']} /{interface['port']}"
     ) # change F /S/P -> F /S /P
-    print(raw)
+    raw = raw.replace('VLAN ID', 'VLAN-ID')
     print(_parse_output(raw))
     return format_mac(_parse_output(raw)[1][0][0].get('MAC'))
 
