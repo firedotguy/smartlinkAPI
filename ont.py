@@ -111,6 +111,7 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
     try:
         channel, ssh, _ = _connect_ssh(host)
 
+        sleep(0.1)
         channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
         sleep(0.1)
         _clear_buffer(channel)
