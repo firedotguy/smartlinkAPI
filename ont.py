@@ -224,7 +224,6 @@ def _read_output(channel: Channel, force: bool = True):
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
-    print(raw)
     def _parse_value(value: str) -> str | float | int | bool | None:
         value = value.strip().rstrip('/')
         value = split(r"\+06:00|%|\(\w*\)$", value, maxsplit=1)[0] # remove "+06:00", "%", and units
@@ -418,11 +417,10 @@ def _parse_service_port(raw: str, interface: dict) -> int | None:
     return _parse_output(raw)[1][0][0].get('INDEX')
 
 def _parse_mac(raw: str) -> str | None:
-    print(raw)
     if 'Failure: There is not any MAC address record' in raw:
         return
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
-    print(_parse_output(raw)[1][0][0].get('MAC'))
+    print(_parse_output(raw)[1][0][0])
     return format_mac(_parse_output(raw)[1][0][0].get('MAC'))
 
 def _parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
