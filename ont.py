@@ -62,7 +62,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         _clear_buffer(channel)
 
         if ont_info.get('online'):
-            channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
+            channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n\n", 'utf-8'))
             optical_info = _parse_optical_info(_read_output(channel))
             ont_info['optical'] = optical_info
 
