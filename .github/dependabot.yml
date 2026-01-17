@@ -12,3 +12,4 @@ updates:
     labels:
       - "dependabot"
     open-pull-requests-limit: 999
+    target-branch: dev
