@@ -208,8 +208,8 @@ def _read_output(channel: Channel, force: bool = True):
         if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
             print('no new data more than 1.5 seconds')
             break
-        if time() - last_data_time > 10 and len(output.strip().strip('\n').splitlines()) <= 5:
-            print('no new data more than 10 seconds')
+        if time() - last_data_time > 20 and len(output.strip().strip('\n').splitlines()) <= 5:
+            print('no new data more than 20 seconds')
             print(output)
             break
         if time() - start_time > 5 and not force:
@@ -219,7 +219,6 @@ def _read_output(channel: Channel, force: bool = True):
             print('read output takes more than 20 sceonds')
             print(output)
         sleep(0.01)
-    print(output)
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
