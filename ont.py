@@ -422,7 +422,7 @@ def _parse_mac(raw: str, interface: dict) -> str | None:
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
     raw = raw.replace('It will take some time, please wait...', '') # remove extra text because it is near to table and can perceived as heading
     raw = raw.replace(
-        f"{interface['fibre']}/{interface['service']} /{interface['port']}",
+        f"{interface['fibre']} /{interface['service']}/{interface['port']}",
         f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
     ) # change F /S/P -> F /S /P
     print(raw)
