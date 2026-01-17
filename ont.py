@@ -68,7 +68,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
 
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
-            sleep(0.07)
+            sleep(0.1)
             channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n\n", 'utf-8'))
             catv = _parse_port_status(_read_output(channel))
             catv_results.append(catv)
