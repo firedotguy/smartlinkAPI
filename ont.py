@@ -219,6 +219,7 @@ def _read_output(channel: Channel, force: bool = True):
             print('read output takes more than 20 sceonds')
             print(output)
         sleep(0.01)
+    print(output)
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
 def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
