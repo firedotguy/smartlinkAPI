@@ -297,7 +297,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             tables[-1].append({key: _parse_value(value.strip()) for key, value in zip(table_fields, split(r'\s+', line.strip()))})
             continue
 
-        if not is_table and len(split(r'\s+', line)) > 1: # table start heading line
+        if not is_table and len(split(r'\s+', line)) > 1 and search(r'\s{3,}', line): # table start heading line
             is_table = True
             is_table_heading = True
             table_heading_raw = line
