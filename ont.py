@@ -421,7 +421,7 @@ def _parse_mac(raw: str) -> str | None:
         return
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
     raw = raw.replace('It will take some time, please wait...', '') # remove extra text because it is near to table and can perceived as heading
-    print(_parse_output(raw)[1][0][0])
+    print(raw)
     return format_mac(_parse_output(raw)[1][0][0].get('MAC'))
 
 def _parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
