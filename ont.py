@@ -50,7 +50,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
     try:
         channel, ssh, olt_name = _connect_ssh(host)
 
-        channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
+        channel.send(bytes(f"display ont info by-sn {sn}\n\n", 'utf-8'))
         parsed_ont_info = _parse_basic_info(_read_output(channel))
 
         if 'error' in parsed_ont_info:
@@ -69,7 +69,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
             sleep(0.07)
-            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
+            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n\n", 'utf-8'))
             catv = _parse_port_status(_read_output(channel))
             catv_results.append(catv)
 
@@ -205,19 +205,20 @@ def _read_output(channel: Channel, force: bool = True):
                     break
                 sleep(0.05)
 
-        if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
-            print('no new data more than 1.5 seconds')
+        if time() - last_data_time > 2 and len(output.strip().strip('\n').splitlines()) > 5:
+            print('no new data more than 2 seconds')
             break
-        if time() - last_data_time > 20 and len(output.strip().strip('\n').splitlines()) <= 5:
-            print('no new data more than 20 seconds')
+        if time() - last_data_time > 10 and len(output.strip().strip('\n').splitlines()) <= 5:
+            print('no new data more than 10 seconds')
             print(output)
             break
         if time() - start_time > 5 and not force:
             print('read output takes more than 5 seconds')
             break
         if time() - start_time > 20:
-            print('read output takes more than 20 sceonds')
+            print('read output takes more than 20 seconds')
             print(output)
+            break
         sleep(0.01)
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
@@ -355,7 +356,7 @@ def _parse_basic_info(raw: str) -> dict:
         'online': data.get('Run state', False),
         'mem_load': data.get('Memory occupation'),
         'cpu_load': data.get('CPU occupation'),
-        'temp': data['Temperature'],
+        'temp': data.get('Temperature'),
         'ip': data['ONT IP 0 address/mask'].split('/')[0] if data.get('ONT IP 0 address/mask') else None,
         'last_down_cause': data.get('Last down cause'),
         'last_down': data.get('Last down time'),
