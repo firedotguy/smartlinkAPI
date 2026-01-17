@@ -93,7 +93,7 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         if ont_info['service_port']:
             sleep(0.07)
             channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n\n', 'utf-8'))
-            ont_info['mac'] = _parse_mac(_read_output(channel))
+            ont_info['mac'] = _parse_mac(_read_output(channel), ont_info['interface'])
 
         channel.close()
         ssh.close()
@@ -410,17 +410,21 @@ def _parse_service_port(raw: str, interface: dict) -> int | None:
     raw = raw.replace(
         f"{interface['fibre']}/{interface['service']} /{interface['port']}",
         f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
-    ) # change F/S /P -> F/ S/ P/
+    ) # change F/S /P -> F/ S/ P
     raw = raw.replace(' Switch-Oriented Flow List\n', '') # remove extra text
     if 'Failure: No service virtual port can be operated' in raw:
         return
     return _parse_output(raw)[1][0][0].get('INDEX')
 
-def _parse_mac(raw: str) -> str | None:
+def _parse_mac(raw: str, interface: dict) -> str | None:
     if 'Failure: There is not any MAC address record' in raw:
         return
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
     raw = raw.replace('It will take some time, please wait...', '') # remove extra text because it is near to table and can perceived as heading
+    raw = raw.replace(
+        f"{interface['fibre']}/{interface['service']} /{interface['port']}",
+        f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
+    ) # change F /S/P -> F /S /P
     print(raw)
     print(_parse_output(raw))
     return format_mac(_parse_output(raw)[1][0][0].get('MAC'))
