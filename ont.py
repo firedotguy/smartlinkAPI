@@ -420,6 +420,7 @@ def _parse_mac(raw: str) -> str | None:
     if 'Failure: There is not any MAC address record' in raw:
         return
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
+    raw = raw.replace('It will take some time, please wait...', '') # remove extra text because it is near to table and can perceived as heading
     print(_parse_output(raw)[1][0][0])
     return format_mac(_parse_output(raw)[1][0][0].get('MAC'))
 
