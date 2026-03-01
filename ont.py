@@ -256,6 +256,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     table_heading_raw = ''
     is_notes = False
     table_fields = []
+    col_positions = []
 
     raw = raw.replace(PAGINATION, '').replace('\x1b[37D', '').replace('x1b[37D', '') # remove stupid pagination
     if "Command:" in raw:
@@ -291,7 +292,21 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             continue
 
         if is_table and not is_table_heading: # table field line
-            tables[-1].append({key: _parse_value(value.strip()) for key, value in zip(table_fields, split(r'\s+', line.strip()))})
+            row_data = {}
+            line_stripped = line.rstrip()
+            for i, field in enumerate(table_fields):
+                if i < len(col_positions) - 1:
+                    start = col_positions[i]
+                    end = col_positions[i + 1]
+                    value = line_stripped[start:end].strip() if start < len(line_stripped) else ''
+                else:
+                    start = col_positions[i] if i < len(col_positions) else 0
+                    value = line_stripped[start:].strip() if start < len(line_stripped) else ''
+                if value:
+                    row_data[field] = _parse_value(value)
+                else:
+                    row_data[field] = None
+            tables[-1].append(row_data)
             continue
 
         if not is_table and len(split(r'\s+', line)) > 1: # table start heading line
@@ -300,6 +315,12 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             table_heading_raw = line
             table_fields = [c for c in split(r'\s+', line.strip()) if c]
             tables.append([])
+            # calculate column pos by heading
+            col_positions = []
+            for field in table_fields:
+                pos = table_heading_raw.find(field)
+                if pos != -1:
+                    col_positions.append(pos)
             continue
 
         if is_table_heading: # table next heading line
