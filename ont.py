@@ -47,10 +47,10 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
     """Search ONT by serial number and return its basic, optical and catv data"""
     ont_info: dict = {}
     olt_name = None
-    try:
+    if True: #try:
         channel, ssh, olt_name = _connect_ssh(host)
 
-        channel.send(bytes(f"display ont info by-sn {sn}\n", 'utf-8'))
+        channel.send(bytes(f"display ont info by-sn {sn}\n\n", 'utf-8'))
         parsed_ont_info = _parse_basic_info(_read_output(channel))
 
         if 'error' in parsed_ont_info:
@@ -62,14 +62,14 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         _clear_buffer(channel)
 
         if ont_info.get('online'):
-            channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n", 'utf-8'))
+            channel.send(bytes(f"display ont optical-info {ont_info['interface']['port']} {ont_info['ont_id']}\n\n", 'utf-8'))
             optical_info = _parse_optical_info(_read_output(channel))
             ont_info['optical'] = optical_info
 
         catv_results = []
         for port_num in range(1, (ont_info['_catv_ports'] or 2) + 1):
-            sleep(0.07)
-            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n", 'utf-8'))
+            sleep(0.1)
+            channel.send(bytes(f"display ont port attribute {ont_info['interface']['port']} {ont_info['ont_id']} catv {port_num}\n\n", 'utf-8'))
             catv = _parse_port_status(_read_output(channel))
             catv_results.append(catv)
 
@@ -92,8 +92,8 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ont_info['service_port'] = _parse_service_port(_read_output(channel), ont_info['interface'])
         if ont_info['service_port']:
             sleep(0.07)
-            channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n', 'utf-8'))
-            ont_info['mac'] = _parse_mac(_read_output(channel))
+            channel.send(bytes(f'display mac-address service-port {ont_info["service_port"]}\n\n', 'utf-8'))
+            ont_info['mac'] = _parse_mac(_read_output(channel), ont_info['interface'])
 
         channel.close()
         ssh.close()
@@ -101,9 +101,9 @@ def search_ont(sn: str, host: str) -> tuple[dict, str | None] | None:
         ping_result = _ping(ont_info['ip']) if 'ip' in ont_info else None
         ont_info['ping'] = float(ping_result.split(' ', maxsplit=1)[0]) if ping_result else None
         return ont_info, olt_name
-    except Exception as e:
-        print(f'error search ont: {e.__class__.__name__}: {e}')
-        return {'online': False, 'detail': str(e)}, olt_name
+    # except Exception as e:
+    #     print(f'error search ont: {e.__class__.__name__}: {e}')
+    #     return {'online': False, 'detail': str(e)}, olt_name
 
 
 def reset_ont(host: str, id: int, interface: dict) -> dict:
@@ -111,6 +111,7 @@ def reset_ont(host: str, id: int, interface: dict) -> dict:
     try:
         channel, ssh, _ = _connect_ssh(host)
 
+        sleep(0.1)
         channel.send(bytes(f"interface gpon {interface['fibre']}/{interface['service']}\n", 'utf-8'))
         sleep(0.1)
         _clear_buffer(channel)
@@ -205,8 +206,8 @@ def _read_output(channel: Channel, force: bool = True):
                     break
                 sleep(0.05)
 
-        if time() - last_data_time > 1.5 and len(output.strip().strip('\n').splitlines()) > 5:
-            print('no new data more than 1.5 seconds')
+        if time() - last_data_time > 2 and len(output.strip().strip('\n').splitlines()) > 5:
+            print('no new data more than 2 seconds')
             break
         if time() - last_data_time > 10 and len(output.strip().strip('\n').splitlines()) <= 5:
             print('no new data more than 10 seconds')
@@ -216,8 +217,9 @@ def _read_output(channel: Channel, force: bool = True):
             print('read output takes more than 5 seconds')
             break
         if time() - start_time > 20:
-            print('read output takes more than 20 sceonds')
+            print('read output takes more than 20 seconds')
             print(output)
+            break
         sleep(0.01)
     return '\n'.join(output.splitlines()[1:]) if output.count('\n') > 1 else output
 
@@ -262,6 +264,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
     if "Command:" in raw:
         raw = raw.split("Command:", 1)[1]
         raw = "\n".join(raw.splitlines()[2:])
+    print(raw)
     for line in raw.splitlines():
         if '#' in line: # prompt lines
             continue
@@ -309,7 +312,7 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             tables[-1].append(row_data)
             continue
 
-        if not is_table and len(split(r'\s+', line)) > 1: # table start heading line
+        if not is_table and len(split(r'\s+', line)) > 1 and search(r'\s{3,}', line): # table start heading line
             is_table = True
             is_table_heading = True
             table_heading_raw = line
@@ -376,7 +379,7 @@ def _parse_basic_info(raw: str) -> dict:
         'online': data.get('Run state', False),
         'mem_load': data.get('Memory occupation'),
         'cpu_load': data.get('CPU occupation'),
-        'temp': data['Temperature'],
+        'temp': data.get('Temperature'),
         'ip': data['ONT IP 0 address/mask'].split('/')[0] if data.get('ONT IP 0 address/mask') else None,
         'last_down_cause': data.get('Last down cause'),
         'last_down': data.get('Last down time'),
@@ -429,16 +432,23 @@ def _parse_service_port(raw: str, interface: dict) -> int | None:
     raw = raw.replace(
         f"{interface['fibre']}/{interface['service']} /{interface['port']}",
         f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
-    ) # change F/S /P -> F/ S/ P/
+    ) # change F/S /P -> F/ S/ P
     raw = raw.replace(' Switch-Oriented Flow List\n', '') # remove extra text
     if 'Failure: No service virtual port can be operated' in raw:
         return
     return _parse_output(raw)[1][0][0].get('INDEX')
 
-def _parse_mac(raw: str) -> str | None:
+def _parse_mac(raw: str, interface: dict) -> str | None:
     if 'Failure: There is not any MAC address record' in raw:
         return
     raw = raw.replace('MAC TYPE', 'MAC-TYPE') # avoid extra spaces for better parsing (prefer "-")
+    raw = raw.replace('It will take some time, please wait...', '') # remove extra text because it is near to table and can perceived as heading
+    raw = raw.replace(
+        f"{interface['fibre']} /{interface['service']}/{interface['port']}",
+        f"{interface['fibre']} /{interface['service']} /{interface['port']}"
+    ) # change F /S/P -> F /S /P
+    raw = raw.replace('VLAN ID', 'VLAN-ID')
+    print(_parse_output(raw))
     return format_mac(_parse_output(raw)[1][0][0].get('MAC'))
 
 def _parse_onts_info(output: str) -> tuple[int, int, list[dict]] | tuple[dict, None, None]:
