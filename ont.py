@@ -295,18 +295,26 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             continue
 
         if is_table and not is_table_heading: # table field line
+            first_value_match = search(r'\S+', line)
+            first_value_pos = first_value_match.start() if first_value_match else 0
+
+            start_col = 0
+            for i, col_pos in enumerate(col_positions):
+                if first_value_pos >= col_pos:
+                    start_col = i
+                else:
+                    break
+
             row_data = {}
             line_stripped = line.rstrip()
             for i, field in enumerate(table_fields):
-                if i < len(col_positions) - 1:
+                if i < start_col:
+                    row_data[field] = None
+                elif i < len(col_positions):
                     start = col_positions[i]
-                    end = col_positions[i + 1]
+                    end = col_positions[i + 1] if i + 1 < len(col_positions) else len(line_stripped)
                     value = line_stripped[start:end].strip() if start < len(line_stripped) else ''
-                else:
-                    start = col_positions[i] if i < len(col_positions) else 0
-                    value = line_stripped[start:].strip() if start < len(line_stripped) else ''
-                if value:
-                    row_data[field] = _parse_value(value)
+                    row_data[field] = _parse_value(value) if value else None
                 else:
                     row_data[field] = None
             tables[-1].append(row_data)
