@@ -240,17 +240,6 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             return False
         return value
 
-    def _find_all(string: str, finding: str) -> list[int]:
-        result = []
-        for i, _ in enumerate(string):
-            if string[i:i + len(finding)] == finding:
-                if len(string) > i + len(finding):
-                    if string[i + len(finding)] == ' ':
-                        result.append(i)
-                else:
-                    result.append(i)
-        return result
-
     fields = {}
     tables = []
     is_table = False
@@ -333,30 +322,6 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
                 if pos != -1:
                     col_positions.append(pos)
             continue
-
-        if is_table_heading: # table next heading line
-            line = line[len(table_heading_raw) - len(table_heading_raw.lstrip()):]
-            full_line = line
-            # print('begin table parse; fields:', table_fields, 'appendixes line:', line)
-
-            for i, field in enumerate(table_fields):
-                raw_index = _find_all(table_heading_raw.lstrip(), field)[table_fields[:i].count(field)]
-                # print('found fields:', _find_all(table_heading_raw.lstrip(), field))
-
-                if search(r'\w', full_line[raw_index:raw_index + len(field)]):
-                    # print('found non space appendix:', full_line[raw_index:raw_index + len(field)] + '... for', field)
-                    appendix = line.lstrip().split(' ', maxsplit=1)[0]
-                    # print('cleaned appendix:', appendix)
-                    table_fields[i] += '-' + appendix
-                    # print('invoked to field:', table_fields[i])
-                    line = line[line.index(appendix) + len(appendix):]
-                    # print('line truncated:', line)
-
-                else:
-                    # print('found space appendix for', field)
-                    # spaces += len(table_heading_raw[:raw_index]) - len(table_heading_raw[:raw_index].rstrip()) - 1
-                    line = line[len(field):]
-                    # print('line truncated:', line)
 
     return fields, [table for table in tables if table]
 
