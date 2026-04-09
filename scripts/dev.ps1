@@ -4,7 +4,7 @@
 #   .\scripts\dev\dev.ps1
 
 # Config — change if needed
-$VenvActivate = ".\venv\Scripts\Activate.ps1"   # path to Activate.ps1
+$VenvActivate = ".venv\Scripts\Activate.ps1"   # path to Activate.ps1
 $AppModule    = "main:app"
 $HostAddr     = "127.0.0.1"
 $Port         = 8000

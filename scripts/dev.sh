@@ -7,7 +7,7 @@
 set -euo pipefail
 
 
-VENV="./venv"
+VENV=".venv"
 APP_MODULE="main:app"
 HOST="127.0.0.1"
 PORT=8000
