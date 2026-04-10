@@ -4,6 +4,7 @@ from select import select
 from subprocess import run
 from re import search, fullmatch, split
 
+from asciitable import read as table_read, DictOutputter, FixedWidth
 from paramiko import SSHClient, AutoAddPolicy, Channel
 
 from config import SSH_USER, SSH_PASSWORD
@@ -240,88 +241,121 @@ def _parse_output(raw: str) -> tuple[dict, list[list[dict]]]:
             return False
         return value
 
+    def _is_divider(line):
+        return bool(fullmatch(r'\s*\-{5,}\s*', line.strip()))
+
     fields = {}
     tables = []
-    is_table = False
-    is_table_heading = False
-    table_heading_raw = ''
-    is_notes = False
-    table_fields = []
-    col_positions = []
 
     raw = raw.replace(PAGINATION, '').replace('\x1b[37D', '').replace('x1b[37D', '') # remove stupid pagination
     if "Command:" in raw:
         raw = raw.split("Command:", 1)[1]
         raw = "\n".join(raw.splitlines()[2:])
     print(raw)
-    for line in raw.splitlines():
-        if '#' in line: # prompt lines
+
+    lines = raw.splitlines()
+    divider_indices = [i for i, line in enumerate(lines) if _is_divider(line)]
+
+    # Identify table sections: divider -> heading -> divider -> data -> [divider]
+    table_line_ranges = set()
+    i = 0
+    while i < len(divider_indices) - 1:
+        first_div = divider_indices[i]
+        second_div = divider_indices[i + 1]
+
+        # Lines between first and second divider - potential heading
+        heading_lines = [lines[j] for j in range(first_div + 1, second_div) if lines[j].strip()]
+
+        # Check if these look like a table heading (multiple words, 3+ spaces, no ":")
+        is_heading = (
+            heading_lines and
+            any(search(r'\s{3,}', line) for line in heading_lines) and
+            not any(':' in line for line in heading_lines)
+        )
+
+        if not is_heading:
+            i += 1
             continue
 
-        if fullmatch(r'\s*\-{5,}\s*', line.strip()): # divider line
-            is_notes = False
-            if is_table_heading:
-                is_table_heading = False
+        # Find data section end (next divider or end of lines)
+        if i + 2 < len(divider_indices):
+            third_div = divider_indices[i + 2]
+        else:
+            third_div = len(lines)
+
+        # Filter data lines (exclude blank, prompts, notes)
+        data_lines = []
+        notes = False
+        for j in range(second_div + 1, third_div):
+            line = lines[j]
+            if not line.strip() or '#' in line:
                 continue
-            if is_table and not is_table_heading:
-                is_table = False
+            if line.strip().startswith('Note') or notes:
+                notes = True
+                continue
+            data_lines.append(line)
+
+        if not data_lines:
+            i += 1
             continue
 
-        # if line == PAGINATION: # pagination line
-        #     continue
+        # Build table text for asciitable: divider + heading + divider + data
+        table_text_lines = [lines[first_div]]
+        table_text_lines.extend(heading_lines)
+        table_text_lines.append(lines[second_div])
+        table_text_lines.extend(data_lines)
+        table_text = '\n'.join(table_text_lines)
 
-        # if PAGINATION in line: # partially-pagination line
-        #     line = line.strip(PAGINATION).strip('\x1b[37D').strip('x1b[37D')
+        # data_start = 1 (first divider) + heading lines + 1 (second divider)
+        data_start_idx = len(heading_lines) + 2
 
-        if line.strip().startswith('Note') or is_notes: # notes line
+        try:
+            dat = table_read(
+                table_text,
+                reader=FixedWidth,
+                outputter=DictOutputter,
+                header_start=0,
+                data_start=data_start_idx,
+                delimiter=' ',
+                numpy=False
+            )
+
+            table_data = []
+            for row in dat:
+                parsed_row = {}
+                for key, value in row.items():
+                    col_name = key.replace(' ', '-')
+                    parsed_row[col_name] = _parse_value(str(value))
+                table_data.append(parsed_row)
+            if table_data:
+                tables.append(table_data)
+        except Exception as e:
+            print(f'asciitable parse error: {e}')
+
+        # Mark table lines
+        end_mark = (third_div + 1) if i + 2 < len(divider_indices) else third_div
+        for k in range(first_div, min(end_mark, len(lines))):
+            table_line_ranges.add(k)
+
+        i += 2 if i + 2 < len(divider_indices) else len(divider_indices)
+
+    # Parse non-table lines for key-value pairs
+    is_notes = False
+    for i, line in enumerate(lines):
+        if i in table_line_ranges:
+            is_notes = False
+            continue
+        if '#' in line:
+            continue
+        if _is_divider(line):
+            is_notes = False
+            continue
+        if line.strip().startswith('Note') or is_notes:
             is_notes = True
             continue
-
-        if ':' in line: # standalone field line
-            is_table = False
-            pair = list(map(lambda i: i.strip(), line.strip().split(':', maxsplit=1)))
+        if ':' in line:
+            pair = list(map(lambda x: x.strip(), line.strip().split(':', maxsplit=1)))
             fields[pair[0]] = _parse_value(pair[-1])
-            continue
-
-        if is_table and not is_table_heading: # table field line
-            first_value_match = search(r'\S+', line)
-            first_value_pos = first_value_match.start() if first_value_match else 0
-
-            start_col = 0
-            for i, col_pos in enumerate(col_positions):
-                if first_value_pos >= col_pos:
-                    start_col = i
-                else:
-                    break
-
-            row_data = {}
-            line_stripped = line.rstrip()
-            for i, field in enumerate(table_fields):
-                if i < start_col:
-                    row_data[field] = None
-                elif i < len(col_positions):
-                    start = col_positions[i]
-                    end = col_positions[i + 1] if i + 1 < len(col_positions) else len(line_stripped)
-                    value = line_stripped[start:end].strip() if start < len(line_stripped) else ''
-                    row_data[field] = _parse_value(value) if value else None
-                else:
-                    row_data[field] = None
-            tables[-1].append(row_data)
-            continue
-
-        if not is_table and len(split(r'\s+', line)) > 1 and search(r'\s{3,}', line): # table start heading line
-            is_table = True
-            is_table_heading = True
-            table_heading_raw = line
-            table_fields = [c for c in split(r'\s+', line.strip()) if c]
-            tables.append([])
-            # calculate column pos by heading
-            col_positions = []
-            for field in table_fields:
-                pos = table_heading_raw.find(field)
-                if pos != -1:
-                    col_positions.append(pos)
-            continue
 
     return fields, [table for table in tables if table]
 
@@ -404,7 +438,7 @@ def _parse_eth_ports_status(raw: str) -> list[dict]:
 def _parse_service_port(raw: str, interface: dict) -> int | None:
     raw = raw.replace(
         f"{interface['fibre']}/{interface['service']} /{interface['port']}",
-        f"{interface['fibre']}/ {interface['service']}/ {interface['port']}"
+        f"{interface['fibre']}/{interface['service']}/{interface['port']}"
     ) # change F/S /P -> F/ S/ P
     raw = raw.replace(' Switch-Oriented Flow List\n', '') # remove extra text
     if 'Failure: No service virtual port can be operated' in raw:
