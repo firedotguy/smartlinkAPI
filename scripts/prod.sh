@@ -12,8 +12,7 @@
 
 set -euo pipefail
 
-# CONFIG — подстрой под своё окружение:
-VENV="/home/noc/smartlinkAPI/venv"
+# CONFIG
 WORKDIR="/home/noc/smartlinkAPI"
 APP_MODULE="main:app"
 HOST="127.0.0.1"
@@ -30,12 +29,10 @@ fi
 # Home dir of run-as user
 HOME_DIR="$(eval echo "~${RUN_AS}")"
 
-# Log dir and files (no ~ in strings)
+# Log dir and files
 LOGDIR="${HOME_DIR}/logs"
 LOGFILE="${LOGDIR}/fastapi.out"
 PIDFILE="${LOGDIR}/fastapi.pid"
-
-UVICORN_BIN="${VENV%/}/bin/uvicorn"
 
 start() {
   echo "Starting FastAPI (prod) in background..."
@@ -49,12 +46,6 @@ start() {
 
   # go to workdir
   cd "${WORKDIR}"
-
-  # activate venv if exists
-  if [ -f "${VENV%/}/bin/activate" ]; then
-    # shellcheck source=/dev/null
-    . "${VENV%/}/bin/activate"
-  fi
 
   # stop existing (use PIDFILE if exists)
   if [ -f "${PIDFILE}" ]; then
@@ -70,15 +61,8 @@ start() {
     pkill -f "uvicorn ${APP_MODULE}" || true
   fi
 
-  # start uvicorn using venv binary if available, otherwise rely on PATH
-  if [ -x "${UVICORN_BIN}" ]; then
-    UVICORN_CMD="${UVICORN_BIN}"
-  else
-    UVICORN_CMD="uvicorn"
-  fi
-
   # run in background and record pid
-  nohup ${UVICORN_CMD} "${APP_MODULE}" \
+  nohup uv run uvicorn "${APP_MODULE}" \
     --host "${HOST}" --port "${PORT}" \
     --proxy-headers \
     > "${LOGFILE}" 2>&1 &
