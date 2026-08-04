@@ -1,0 +1,119 @@
+from contextlib import asynccontextmanager
+from time import time
+from typing import Callable
+
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from uvicorn import run
+
+from app.api.device import get_olts
+from app.api.inventory import get_item_categories
+from app.api.tariff import get_tariffs
+from app.config import HOST, LOG_COLORFUL, LOG_LEVEL, PORT
+from app.db import Session, create_db, get_db
+from app.db.crud import check_token
+from app.routers import router
+from app.snmp import update_ont_indexes
+from app.utils import storage
+from app.utils.logger import format_request, get_logger, setup_logging
+
+setup_logging(LOG_LEVEL, LOG_COLORFUL)
+l = get_logger()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    l.info("server start")
+    create_db()
+
+    # app.state.provinces = get_provinces()
+    storage.tariffs = get_tariffs()
+    storage.item_categories = get_item_categories()
+    storage.olts = get_olts()
+    # update_ont_indexes()
+
+    try:
+        yield
+    finally:
+        l.info("server stop")
+
+
+def verify_token(request: Request, db: Session = Depends(get_db)):
+    if request.url.path.rsplit("/", maxsplit=1)[-1] != "login":
+        if not request.cookies.get("token") or (request.cookies.get("token") and not check_token(db, request.cookies["token"])):
+            l.debug("unauthorized call %s", request.url.path)
+            raise HTTPException(detail="unauthorized", status_code=401)
+
+
+app = FastAPI(title="SmartLinkAPI", lifespan=lifespan, dependencies=[Depends(verify_token)], redoc_url=None)
+
+
+# app.state.tariffs = {
+#     tariff['billing_uuid']: Tariff(unescape(tariff['name']))
+#     for tariff in api_call('tariff', 'get')['data'].values()
+# }
+# app.state.customer_groups = {
+#     group['id']: group['name']
+#     for group in api_call('customer', 'get_customer_group')['data'].values()
+# }
+# app.state.addatas = {
+#     str(data['id']): unescape(data['available_value'][0]).split('\n')
+#     for data in api_call('additional_data', 'get_list', 'section=17')['data'].values()
+#     if 'available_value' in data
+# }
+# app.state.tmc_categories = [
+#     {
+#         'id': section['id'],
+#         'name': section['name'],
+#         'type_id': section['type_id'],
+#         'parent_id': section['parent_id'] if section['parent_id'] != 0 else None
+#     } for section in api_call('inventory', 'get_inventory_section_catalog')['data'].values()
+# ]
+# app.state.olts = [
+#     {
+#         'id': olt['id'],
+#         'device': olt['name'],
+#         'host': olt['host'],
+#         'online': bool(olt['is_online']),
+#         'location': unescape(olt['location'])
+#     } for olt in api_call('device', 'get_data', 'object_type=olt&is_hide_ifaces_data=1')['data'].values()
+# ]
+# app.state.divisions = [
+#     {
+#         'id': division['id'],
+#         'parent_id': division['parent_id'],
+#         'name': unescape(division['name'])
+#     } for division in api_call('employee', 'get_division_list')['data'].values()
+# ]
+# app.state.cached_employees = []
+# app.state.cached_customers = []
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*", f"{HOST}:{PORT}", "smartlink.neotelecom.kg", "146.120.230.7"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+
+@app.middleware("http")
+async def middleware(request: Request, call_next: Callable) -> Response:
+    start = time()
+    response: Response = await call_next(request)
+    # custom access log
+    l.info(format_request(request, response, round(time() - start, 2), LOG_COLORFUL), extra={"highlighter": None})
+    return response
+
+
+app.include_router(router)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> FileResponse:
+    """Get favicon"""
+    return FileResponse("favicon.ico")
+
+
+run(app, host=HOST, port=PORT, log_level="warning")

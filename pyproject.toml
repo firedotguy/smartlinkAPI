@@ -1,0 +1,26 @@
+[project]
+name = "smartlinkapi"
+version = "3.0.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aenum>=3.1.17",
+    "asciitable2==0.1.1",
+    "bs4>=0.0.2",
+    "ezsnmp>=2.3.0",
+    "fastapi[standard]>=0.135.3",
+    "html-to-json>=3.0.0",
+    "paramiko>=4.0.0",
+    "python-dotenv>=1.2.2",
+    "requests>=2.33.1",
+    "rich>=14.3.3",
+    "sqlalchemy>=2.0.49",
+]
+
+[tool.uv.sources]
+asciitable2 = { git = "https://github.com/fi-res/asciitable2" }
+
+[tool.ruff]
+line-length = 160
+ignore = ["E741"]
