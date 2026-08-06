@@ -22,7 +22,7 @@ def api_post_login(response: Response, username: str, password: str, db: Session
 
     token = gen_token()
     set_employee(db, id, username, token)
-    response.set_cookie("token", token, httponly=True)
+    response.set_cookie("token", token, httponly=True, secure=True)
 
     return {"id": id}
 

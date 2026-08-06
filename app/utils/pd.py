@@ -49,7 +49,7 @@ def str2datetime_validator(value: str) -> datetime | None:
 def phone_validator(value: str | dict) -> int | None:
     if isinstance(value, dict):
         value = value["number"]
-    value = value.replace(" ", "").replace("(", "").replace(")", "")
+    value = value.replace(" ", "").replace("(", "").replace(")", "").replace("-", "")
     if value.startswith("+996"):
         value = value.split("+996")[1]
     if value.startswith("996"):
@@ -64,6 +64,8 @@ NullablePhone = Annotated[int | None, BeforeValidator(phone_validator)]
 
 
 def coordinates_validator(value: dict[str, float] | list[list[float]]) -> list[float] | None:
+    if value in ("", "-", "null"):
+        return None
     if isinstance(value, list):
         return from_polygon(value)
     return [value["lat"], value["lon"]]
