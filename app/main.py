@@ -10,7 +10,7 @@ from uvicorn import run
 from app.api.device import get_olts
 from app.api.inventory import get_item_categories
 from app.api.tariff import get_tariffs
-from app.config import HOST, LOG_COLORFUL, LOG_LEVEL, PORT
+from app.config import HOST, LOG_COLORFUL, LOG_LEVEL, PORT, UPDATE_ONT_INDEXES_ON_STARTUP
 from app.db import Session, create_db, get_db
 from app.db.crud import check_token
 from app.routers import router
@@ -31,7 +31,8 @@ async def lifespan(app: FastAPI):
     storage.tariffs = get_tariffs()
     storage.item_categories = get_item_categories()
     storage.olts = get_olts()
-    update_ont_indexes()
+    if UPDATE_ONT_INDEXES_ON_STARTUP:
+        update_ont_indexes()
 
     try:
         yield
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
 
 
 def verify_token(request: Request, db: Session = Depends(get_db)):
-    if request.url.path.rsplit("/", maxsplit=1)[-1] != "login":
+    if request.url.path.rsplit("/", maxsplit=1)[-1] not in ("login", "platform"):
         if not request.cookies.get("token") or (request.cookies.get("token") and not check_token(db, request.cookies["token"])):
             l.debug("unauthorized call %s", request.url.path)
             raise HTTPException(detail="unauthorized", status_code=401)
@@ -50,7 +51,7 @@ app = FastAPI(title="SmartLinkAPI", lifespan=lifespan, dependencies=[Depends(ver
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", f"{HOST}:{PORT}", "smartlink.neotelecom.kg", "146.120.230.7"],
+    allow_origins=[f"http://{HOST}:{PORT}", "https://smartlink.neotelecom.kg", "http://146.120.230.7"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]

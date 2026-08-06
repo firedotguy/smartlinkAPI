@@ -31,7 +31,11 @@ def get_task_ids(customer_id: int) -> list[int]:
 
 def get_tasks(*ids: int, employee_resolver: Callable[[int], str | None], division_resolver: Callable[[int], str | None]) -> list[Task]:
     l.info("get tasks ids=%s", ids)
-    tasks = api_call("task", "show", id=",".join(map(str, ids))).get("data", [])
+    tasks = api_call("task", "show", id=",".join(map(str, ids))).get("data")
+
+    if tasks is None:
+        return []
+
     if len(ids) > 1:
         tasks = dict2list_validator(tasks)
 

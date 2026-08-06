@@ -44,3 +44,5 @@ PORT = get_int("PORT", 1000)
 
 SSH_USER = get_str_force("SSH_USER")
 SSH_PASSWORD = get_str_force("SSH_PASSWORD")
+
+UPDATE_ONT_INDEXES_ON_STARTUP = get_bool("UPDATE_ONT_INDEXES_ON_STARTUP")

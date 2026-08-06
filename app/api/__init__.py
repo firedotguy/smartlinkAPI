@@ -56,12 +56,12 @@ def custom_api_call(url: str, *, json: bool = True, **params):
         auth_us()
 
     l.debug("> %s %s", url, params)
-    res = session.get(BASE_URL + url, params=params, timeout=30)
+    res = session.get(BASE_URL + url, params=params, timeout=30, verify=False)
 
     if 'url: "/body/login",' in res.text:
         l.warning("custom api call failed: re-auth")
         auth_us()
-        res = session.get(BASE_URL + url, params=params, timeout=30)
+        res = session.get(BASE_URL + url, params=params, timeout=30, verify=False)
 
     l.debug("< %s", res.text[:1000])
 
@@ -82,6 +82,6 @@ def auth_us(page: str | None = None):
     global authed
 
     l.info("auth userside")
-    csrf = (page or session.get("https://us.neotelecom.kg/").text).split("_csrf: '")[-1].split("',")[0]
-    session.post("https://us.neotelecom.kg/body/login", params={"username": US_LOGIN, "password": US_PASSWORD, "_csrf": csrf})
+    csrf = (page or session.get(BASE_URL, verify=False).text).split("_csrf: '")[-1].split("',")[0]
+    session.post(f"{BASE_URL}body/login", params={"username": US_LOGIN, "password": US_PASSWORD, "_csrf": csrf}, verify=False)
     authed = True
