@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     storage.tariffs = get_tariffs()
     storage.item_categories = get_item_categories()
     storage.olts = get_olts()
-    # update_ont_indexes()
+    update_ont_indexes()
 
     try:
         yield

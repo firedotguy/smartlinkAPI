@@ -3,6 +3,8 @@ from enum import Enum
 from time import time
 
 from requests import Session
+from urllib3 import disable_warnings
+from urllib3.exceptions import InsecureRequestWarning
 
 from app.config import API_KEY, BASE_URL, US_LOGIN, US_PASSWORD
 from app.utils.logger import get_logger
@@ -10,6 +12,7 @@ from app.utils.logger import get_logger
 l = get_logger("api")
 session = Session()
 authed = False
+disable_warnings(category=InsecureRequestWarning)
 
 # def get_page(url: str) -> Response:
 #     l.debug('get %s', url)
@@ -36,9 +39,9 @@ def api_call(cat: str, action: str, post: bool = False, timeout: int = 30, **par
 
     start = time()
     if post:
-        res = session.post(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout)
+        res = session.post(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout, verify=False)
     else:
-        res = session.get(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout)
+        res = session.get(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout, verify=False)
 
     l.debug("< %s in %sms", res.json(), round((time() - start) * 1000))
 
