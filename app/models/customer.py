@@ -129,7 +129,7 @@ class Customer(CustomerSearch):
     status: CustomerStatus = Field(validation_alias="state_id")
     agreement: list2model[Agreement] | None
     has_billing: int2bool = Field(validation_alias="is_in_billing")
-    balance: int = 0
+    balance: float = 0
     tariffs: list[Tariff] = Field(validation_alias="tariff")
 
     ip: IPv4Address | None = Field(None, validate_default=True)

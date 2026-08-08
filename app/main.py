@@ -51,7 +51,8 @@ app = FastAPI(title="SmartLinkAPI", lifespan=lifespan, dependencies=[Depends(ver
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[f"http://{HOST}:{PORT}", "https://smartlink.neotelecom.kg", "http://146.120.230.7"],
+    allow_origins=["https://smartlink.neotelecom.kg", "http://146.120.230.7"],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
