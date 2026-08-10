@@ -32,6 +32,11 @@ def api_get_employee_me(request: Request, employee: Employee = Depends(employee_
     return api_get_employee(int(employee.id))
 
 
+@router.get("/divisions")
+def api_get_divisions(db: Session = Depends(db_dependency)):
+    return get_divisions(db)
+
+
 @router.get("/{id}", response_model=Employee)
 def api_get_employee(id: int):
     employee = get_employee(id)
@@ -39,8 +44,3 @@ def api_get_employee(id: int):
         return JSONResponse({"detail": "employee not found"}, 404)
 
     return employee
-
-
-@router.get("/divisions")
-def api_get_divisions(db: Session = Depends(db_dependency)):
-    return get_divisions(db)
