@@ -42,6 +42,8 @@ LOG_COLORFUL = get_bool("LOG_COLORFUL")
 HOST = get_str("HOST", "localhost")
 PORT = get_int("PORT", 1000)
 
+INSIDE_TOKEN = get_str("INSIDE_TOKEN")
+
 SSH_USER = get_str_force("SSH_USER")
 SSH_PASSWORD = get_str_force("SSH_PASSWORD")
 

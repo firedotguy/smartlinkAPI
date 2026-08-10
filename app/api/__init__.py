@@ -31,7 +31,7 @@ def api_call(cat: str, action: str, post: bool = False, timeout: int = 30, **par
         elif isinstance(v, Enum):
             _params[k] = v.value
         elif isinstance(v, datetime):
-            _params[k] = v.strftime("%Y.%m.%d %H:%M:%S")
+            _params[k] = v.isoformat()
         elif v:
             _params[k] = v
 

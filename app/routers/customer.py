@@ -37,7 +37,7 @@ def api_get_customer(id: int):
 
 @router.get("/{id}/tasks")
 def api_get_customer_tasks(id: int, db: Session = Depends(db_dependency)):
-    ids = get_task_ids(id)
+    ids = get_task_ids(customer_id=id)
     return get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
 
 

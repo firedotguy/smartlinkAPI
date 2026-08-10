@@ -21,17 +21,33 @@ def get_task(id: int, employee_resolver: Callable[[int], str | None], division_r
     return Task.model_validate(res, context={**res, "employee_resolver": employee_resolver, "division_resolver": division_resolver})
 
 
-def get_task_ids(customer_id: int) -> list[int]:
-    l.info("get task ids customer_id=%s", customer_id)
-    tasks = api_call("task", "get_list", customer_id=customer_id, order_by="date_add")["list"].split(",")
+def get_task_ids(
+    *,
+    customer_id: int | None = None,
+    type: list[int] | None = None,
+    author_id: list[int] | None = None,
+    completed_at_from: datetime | None = None,
+    completed_at_to: datetime | None = None
+) -> list[int]:
+    l.info("get task ids customer_id=%s type=%s completed_at_from=%s completed_at_to=%s", customer_id, type, completed_at_from, completed_at_to)
+    tasks = api_call(
+        "task",
+        "get_list",
+        customer_id=customer_id,
+        type_id=",".join(map(str, type)) if type else None,
+        author_employee_id=",".join(map(str, author_id)) if author_id else None,
+        date_finish_from=completed_at_from,
+        date_finish_to=completed_at_to,
+        order_by="date_finish"
+    )["list"].split(",")
     if not tasks:
         return []
-    return [int(task) for task in tasks if task]
+    return [int(task) for task in tasks if task][::-1]
 
 
 def get_tasks(*ids: int, employee_resolver: Callable[[int], str | None], division_resolver: Callable[[int], str | None]) -> list[Task]:
     l.info("get tasks ids=%s", ids)
-    tasks = api_call("task", "show", id=",".join(map(str, ids))).get("data")
+    tasks = api_call("task", "show", id=",".join(map(str, ids)), timeout=60).get("data")
 
     if tasks is None:
         return []

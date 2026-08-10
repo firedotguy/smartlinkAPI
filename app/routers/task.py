@@ -1,9 +1,11 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.attach import get_task_attachs
-from app.api.task import add_comment, add_task, get_task
+from app.api.task import add_comment, add_task, get_task, get_task_ids, get_tasks
 from app.db.crud import get_division_name, get_employee_name
 from app.db.models import Employee
 from app.enums import TaskType
@@ -72,3 +74,18 @@ def api_post_task(
         return JSONResponse({"detail": "appeal type is required"}, 422)
 
     return {"id": add_task(employee.id, type, address_id, customer_id, description, list_divisions, reason, appeal_phone, appeal_type)}
+
+
+@router.get("")
+def api_get_tasks(
+    type: str | None = None,
+    author_id: str | None = None,
+    completed_at_from: datetime | None = None,
+    completed_at_to: datetime | None = None,
+    db: Session = Depends(db_dependency)
+):
+    types = list(map(int, type.split(","))) if type else None
+    authors = list(map(int, author_id.split(","))) if author_id else None
+
+    ids = get_task_ids(completed_at_from=completed_at_from, completed_at_to=completed_at_to, type=types, author_id=authors)
+    return get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))

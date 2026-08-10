@@ -57,6 +57,11 @@ def get_division_name(db: Session, id: int) -> str | None:
     l.error("division not found")
 
 
+def get_divisions(db: Session) -> list[Division]:
+    l.debug("get divisions")
+    return db.query(Division).all()
+
+
 def check_token(db: Session, token: str):
     l.debug("check token token=%s", mask_token(token))
     res = db.query(Employee).where(Employee.token == token).first() is not None

@@ -10,7 +10,7 @@ from uvicorn import run
 from app.api.device import get_olts
 from app.api.inventory import get_item_categories
 from app.api.tariff import get_tariffs
-from app.config import HOST, LOG_COLORFUL, LOG_LEVEL, PORT, UPDATE_ONT_INDEXES_ON_STARTUP
+from app.config import HOST, INSIDE_TOKEN, LOG_COLORFUL, LOG_LEVEL, PORT, UPDATE_ONT_INDEXES_ON_STARTUP
 from app.db import Session, create_db, get_db
 from app.db.crud import check_token
 from app.routers import router
@@ -42,7 +42,9 @@ async def lifespan(app: FastAPI):
 
 def verify_token(request: Request, db: Session = Depends(get_db)):
     if request.url.path.rsplit("/", maxsplit=1)[-1] not in ("login", "platform"):
-        if not request.cookies.get("token") or (request.cookies.get("token") and not check_token(db, request.cookies["token"])):
+        if not request.cookies.get("token") or (
+            request.cookies.get("token") and not (check_token(db, request.cookies["token"]) or request.cookies["token"] == INSIDE_TOKEN)
+        ):
             l.debug("unauthorized call %s", request.url.path)
             raise HTTPException(detail="unauthorized", status_code=401)
 

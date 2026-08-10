@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.employee import check_creds, get_employee, get_employee_id
 from app.db import Session
-from app.db.crud import set_employee
+from app.db.crud import get_divisions, set_employee
 from app.models.employee import Employee
 from app.utils.dependencies import db_dependency, employee_dependency
 from app.utils.token import gen_token
@@ -39,3 +39,8 @@ def api_get_employee(id: int):
         return JSONResponse({"detail": "employee not found"}, 404)
 
     return employee
+
+
+@router.get("/divisions")
+def api_get_divisions(db: Session = Depends(db_dependency)):
+    return get_divisions(db)
