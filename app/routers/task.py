@@ -54,7 +54,7 @@ def api_post_task(
     divisions: str = "",
     employee: Employee = Depends(employee_dependency)
 ):
-    list_divisions = list(map(int, divisions.split(",")))
+    list_divisions = list(map(int, divisions.split(","))) if divisions else []
     if (bool(customer_id) and bool(address_id)) or (not bool(customer_id) and not bool(address_id)):
         return JSONResponse({"detail": "only one of customer_id or address_id allowed"}, 422)
 
