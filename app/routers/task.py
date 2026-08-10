@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -88,4 +88,8 @@ def api_get_tasks(
     authors = list(map(int, author_id.split(","))) if author_id else None
 
     ids = get_task_ids(completed_at_from=completed_at_from, completed_at_to=completed_at_to, type=types, author_id=authors)
+
+    if len(ids) > 100:
+        return JSONResponse({"detail": "too wide query"}, 400)
+
     return get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))

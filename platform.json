@@ -1,7 +1,7 @@
 {
     "dev": false,
-    "force_dev": true,
-    "stable": false,
+    "force_dev": false,
+    "stable": true,
     "compatible_versions": ["0.4.3", "0.4.3-dev.1"],
     "announcement": {
         "title": "SmartLinkAPI 3.0.0",

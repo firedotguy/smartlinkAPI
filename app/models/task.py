@@ -138,5 +138,7 @@ class Task(BaseModel):
     @classmethod
     def validate_coordinates(cls, _: None, info: ValidationInfo):
         coords = addata(7).func(None, info)  # ty: ignore
+        if "Нет координат" in str(coords):
+            return
         if coords:
             return list(map(float, coords.split(",")))
