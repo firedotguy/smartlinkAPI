@@ -6,7 +6,7 @@ from app.models import BaseModel
 from app.models.attach import Attach
 from app.models.division import Division
 from app.models.employee import EmployeeName
-from app.utils.pd import Phone, addata, dict2list, dict2list_validator, list2model, str2list_validator, str4datetime
+from app.utils.pd import Phone, addata, coordinates_validator, dict2list, dict2list_validator, list2model, str2list_validator, str4datetime
 
 
 class TaskType(BaseModel):
@@ -59,7 +59,7 @@ _appeal_phone = Annotated[Phone | None, addata(29)]
 _appeal_reason = Annotated[str | None, addata(32, 30)]
 _not_use_reason = Annotated[str | None, addata(37)]
 _solve = Annotated[str | None, addata(86, 36)]
-_price = Annotated[float | None, addata(26)]
+_price = Annotated[str | float | None, addata(26)]
 _connect_type = Annotated[str | None, addata(27)]
 _tariff = Annotated[str | None, addata(25)]
 _extra_services = Annotated[list[str] | None, BeforeValidator(str2list_validator), addata(83)]
@@ -138,7 +138,4 @@ class Task(BaseModel):
     @classmethod
     def validate_coordinates(cls, _: None, info: ValidationInfo):
         coords = addata(7).func(None, info)  # ty: ignore
-        if "Нет координат" in str(coords):
-            return
-        if coords:
-            return list(map(float, coords.split(",")))
+        return coordinates_validator(coords)
