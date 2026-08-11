@@ -49,7 +49,7 @@ def str2datetime_validator(value: str) -> datetime | None:
 def phone_validator(value: str | dict) -> int | None:
     if isinstance(value, dict):
         value = value["number"]
-    value = value.replace(" ", "").replace("(", "").replace(")", "").replace("-", "")
+    value = value.replace(" ", "").replace("(", "").replace(")", "").replace("-", "").split(";")[0]
     if value.startswith("+996"):
         value = value.split("+996")[1]
     if value.startswith("996"):
