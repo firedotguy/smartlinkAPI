@@ -21,16 +21,17 @@ def api_get_customer_search(q: str):
 
 
 @router.get("/{id}")
-def api_get_customer(id: int):
+def api_get_customer(id: int, full: bool = True):
     customer = get_customer(id)
 
     if customer is None:
         return JSONResponse({"detail": "customer not found"}, 404)
 
-    if customer.sn:
-        customer.olt_id = get_customer_olt(id) or get_ont_olt(customer.sn)
-    if customer.status == CustomerStatus.active and customer.connected_at is not None:
-        customer.disconnect_at = calc_disconnect(customer.tariffs, customer.balance, customer.connected_at)
+    if full:
+        if customer.sn:
+            customer.olt_id = get_customer_olt(id) or get_ont_olt(customer.sn)
+        if customer.status == CustomerStatus.active and customer.connected_at is not None:
+            customer.disconnect_at = calc_disconnect(customer.tariffs, customer.balance, customer.connected_at)
 
     return customer
 

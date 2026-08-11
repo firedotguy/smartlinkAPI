@@ -4,8 +4,17 @@ from fastapi.responses import JSONResponse
 from app.snmp import get_ont
 from app.ssh import restart, toggle_catv
 from app.utils import storage
+from app.utils.ping import ping
 
 router = APIRouter(prefix="/onts")
+
+
+@router.get("/ping")
+def api_get_ping(ip: str):
+    res = ping(ip)
+    if res is None:
+        return JSONResponse({"detail": "fail to ping"}, status_code=400)
+    return res
 
 
 @router.get("/{sn}")
@@ -17,7 +26,7 @@ def api_get_ont(sn: str, olt_id: int):
     ont = get_ont(olt, sn)
     if ont is None:
         return JSONResponse({"detail": "ont not found"}, 404)
-    return {"olt": olt.model_dump(exclude={"snmp_community", "snmp_protocol", "ip"}), **ont}
+    return {"olt": olt.model_dump(exclude={"snmp_community", "snmp_protocol"}), **ont}
 
 
 @router.post("/{sn}/restart", status_code=204)

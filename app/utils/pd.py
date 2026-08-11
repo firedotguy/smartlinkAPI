@@ -64,7 +64,7 @@ NullablePhone = Annotated[int | None, BeforeValidator(phone_validator)]
 
 
 def coordinates_validator(value: dict[str, float] | list[list[float]]) -> list[float] | None:
-    if value in ("", "-", "null"):
+    if isinstance(value, str) or not value:
         return None
     if isinstance(value, list):
         return from_polygon(value)
