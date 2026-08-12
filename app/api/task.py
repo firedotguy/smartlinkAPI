@@ -25,19 +25,35 @@ def get_task_ids(
     *,
     customer_id: int | None = None,
     type: list[int] | None = None,
+    status: list[int] | None = None,
     author_id: list[int] | None = None,
+    employee_id: int | None = None,
     completed_at_from: datetime | None = None,
-    completed_at_to: datetime | None = None
+    completed_at_to: datetime | None = None,
+    limit: int | None = None
 ) -> list[int]:
-    l.info("get task ids customer_id=%s type=%s completed_at_from=%s completed_at_to=%s", customer_id, type, completed_at_from, completed_at_to)
+    l.info(
+        "get task ids customer_id=%s type=%s status=%s author_id=%s employee_id=%s completed_at_from=%s completed_at_to=%s limit=%s",
+        customer_id,
+        type,
+        status,
+        author_id,
+        employee_id,
+        completed_at_from,
+        completed_at_to,
+        limit
+    )
     tasks = api_call(
         "task",
         "get_list",
         customer_id=customer_id,
         type_id=",".join(map(str, type)) if type else None,
+        state_id=",".join(map(str, status)) if status else None,
         author_employee_id=",".join(map(str, author_id)) if author_id else None,
+        employee_id=employee_id,
         date_finish_from=completed_at_from,
         date_finish_to=completed_at_to,
+        limit=limit,
         order_by="date_finish"
     )["list"].split(",")
     if not tasks:
