@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.attach import get_task_attachs
+from app.api.customer import get_customer
 from app.api.task import add_comment, add_task, get_task, get_task_ids, get_tasks
 from app.db.crud import get_division_name, get_employee_name
 from app.db.models import Employee
@@ -82,6 +83,7 @@ def api_get_tasks(
     author_id: str | None = None,
     completed_at_from: datetime | None = None,
     completed_at_to: datetime | None = None,
+    get_customers: bool = False,
     db: Session = Depends(db_dependency)
 ):
     types = list(map(int, type.split(","))) if type else None
@@ -92,4 +94,9 @@ def api_get_tasks(
     if len(ids) > 100:
         return JSONResponse({"detail": "too wide query"}, 400)
 
-    return get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
+    tasks = get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
+    if get_customers:
+        for task in tasks:
+            if task.customer_id:
+                task.customer = get_customer(task.customer_id)
+    return tasks

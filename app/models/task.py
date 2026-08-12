@@ -4,6 +4,7 @@ from pydantic import BeforeValidator, Field, ValidationInfo, field_validator, mo
 
 from app.models import BaseModel
 from app.models.attach import Attach
+from app.models.customer import Customer
 from app.models.division import Division
 from app.models.employee import EmployeeName
 from app.utils.pd import Phone, addata, coordinates_validator, dict2list, dict2list_validator, list2model, str2list_validator, str4datetime
@@ -92,6 +93,8 @@ class Task(BaseModel):
     attachs: dict2list[Attach] = Field([], validation_alias="attach")
 
     customer_id: list2model[int] | None = Field(None, validation_alias="customer")
+    customer: Customer | None = Field(None, validation_alias="not_customer_pls_fill_manually")
+
     tariff: _tariff = Field(None, validate_default=True)
     appeal_type: _appeal_type = Field(None, validate_default=True)
     appeal_phone: _appeal_phone = Field(None, validate_default=True)
