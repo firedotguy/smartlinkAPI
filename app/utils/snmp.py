@@ -1,8 +1,27 @@
 from datetime import datetime
+from re import fullmatch
 
 
-def decode_sn(hex: str) -> str:
-    data = bytes.fromhex(hex)
+def decode_sn(value: str) -> str:
+    raw = value.strip()
+    compact = raw.replace(" ", "")
+    data: bytes | None = None
+
+    if fullmatch(r"[A-Za-z]{4}[0-9A-Fa-f]{8}", compact):
+        return compact[:4].upper() + compact[4:].upper()
+
+    if len(compact) == 16:
+        try:
+            data = bytes.fromhex(compact)
+        except ValueError:
+            data = None
+
+    if data is None and len(raw) == 8:
+        data = raw.encode("latin-1")
+
+    if data is None or len(data) != 8:
+        raise ValueError(f"unexpected sn format {value!r} ({len(raw)} chars)")
+
     return data[:4].decode("ascii") + data[4:].hex().upper()
 
 

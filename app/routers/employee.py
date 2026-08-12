@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import JSONResponse
 
 from app.api.employee import check_creds, get_employee, get_employee_id
-from app.api.task import get_task, get_task_ids
+from app.api.task import get_task_ids, get_tasks
 from app.db import Session
 from app.db.crud import get_division_name, get_divisions, get_employee_name, set_employee
 from app.models.employee import Employee
@@ -45,7 +45,7 @@ def api_get_employee_me_tasks(
     if len(ids) > 100:
         return JSONResponse({"detail": "too wide query"}, 400)
 
-    return get_task(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
+    return get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
 
 
 @router.get("/divisions")

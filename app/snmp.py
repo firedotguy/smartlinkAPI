@@ -31,14 +31,14 @@ def update_ont_indexes():
         try:
             onts = session.bulk_walk("1.3.6.1.4.1.2011.6.128.1.1.2.43.1.3")
         except TimeoutError:
-            l.error("timeout while fetching onts")
+            l.error("timeout connecting to olt ip=%s", olt.ip)
             continue
 
         for sn in onts:
             try:
                 set_ont(db, decode_sn(sn.value), sn.oid.split(".")[-1], sn.index)
-            except ValueError:
-                l.warning("skip invalid ont sn=%s", sn.value)
+            except ValueError as e:
+                l.warning("skip invalid ont olt=%s sn=%r: %s", olt.ip, sn.value, e)
 
         session.close()
         db.commit()
