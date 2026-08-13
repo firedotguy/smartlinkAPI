@@ -109,21 +109,21 @@ class BuildingType(MultiValueEnum):
     new = 8  # Новостройки
 
 
-class ItemType(Enum):
-    cable = "7ca47c6c-2384-47b4-805e-770ad0c6a695"
-    olt = "9e8fb519-f26b-4452-8bd0-c8ebfe6eee89"
-    edfa = "225fb13f-0335-4203-a479-6f210e51e64f"
-    ont = "c7d54c9d-1b9a-4262-94c8-f353336630e1"
-    clamp = "b641211a-4307-4dc7-aa21-9ecc83b556fe"  # зажим
-    commutator = "486c7c6a-2748-4bea-9e15-c06f4ed8633b"
-    coupling = "66638d77-0c99-42e1-a5ba-4d43ba31feb2"
-    odf = "7b8d762a-302a-4386-affe-09a927bc9cff"
-    patchcord = "71519a2f-0808-4c2b-8776-5f8043cbc4a4"
-    other = "17c40585-dca8-40ed-8ded-5673cba2dcea"
-    junction = "3bdffaa5-3e68-453f-9bbd-8de2a76701da"  # распред коробка
-    router = "565c435b-8514-4fb2-b752-e0d59a21139d"
-    splitter = "a802f74e-2cf7-43e3-90b9-00255b03dc4d"
-    smart_home = "6af4368b-77c0-4fae-a136-19a7f9dc757e"
+class ItemType(MultiValueEnum):
+    cable = "7ca47c6c-2384-47b4-805e-770ad0c6a695", 47
+    olt = "9e8fb519-f26b-4452-8bd0-c8ebfe6eee89", 1
+    edfa = "225fb13f-0335-4203-a479-6f210e51e64f", 39
+    ont = "c7d54c9d-1b9a-4262-94c8-f353336630e1", 9
+    clamp = "b641211a-4307-4dc7-aa21-9ecc83b556fe", 42  # зажим
+    commutator = "486c7c6a-2748-4bea-9e15-c06f4ed8633b", 2, 6, 37
+    coupling = "66638d77-0c99-42e1-a5ba-4d43ba31feb2", 46  # муфта
+    odf = "7b8d762a-302a-4386-affe-09a927bc9cff", 8
+    patchcord = "71519a2f-0808-4c2b-8776-5f8043cbc4a4", 17
+    other = "17c40585-dca8-40ed-8ded-5673cba2dcea", 43
+    junction = "3bdffaa5-3e68-453f-9bbd-8de2a76701da", 48  # распред коробка
+    router = "565c435b-8514-4fb2-b752-e0d59a21139d", 49
+    splitter = "a802f74e-2cf7-43e3-90b9-00255b03dc4d", 7
+    smart_home = "6af4368b-77c0-4fae-a136-19a7f9dc757e", 41
     cisco = "9b78cb0d-55f5-405e-9dad-e64da86e5c1d"
     cambium = "c3b4836f-18f2-4d83-a2cc-dea043a57823"
 

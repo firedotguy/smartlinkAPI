@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Response
 from fastapi.responses import JSONResponse
 
+from app.api.customer import get_customer
 from app.api.employee import check_creds, get_employee, get_employee_id
 from app.api.task import get_task_ids, get_tasks
 from app.db import Session
@@ -35,7 +36,12 @@ def api_get_employee_me(employee: Employee = Depends(employee_dependency)):
 
 @router.get("/me/tasks")
 def api_get_employee_me_tasks(
-    status: str = "", type: str = "", limit: int | None = None, employee: Employee = Depends(employee_dependency), db: Session = Depends(db_dependency)
+    status: str = "",
+    type: str = "",
+    limit: int | None = None,
+    get_customers: bool = True,
+    employee: Employee = Depends(employee_dependency),
+    db: Session = Depends(db_dependency)
 ):
     types = list(map(int, type.split(","))) if type else None
     statuses = list(map(int, status.split(","))) if status else None
@@ -45,7 +51,12 @@ def api_get_employee_me_tasks(
     if len(ids) > 100:
         return JSONResponse({"detail": "too wide query"}, 400)
 
-    return get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
+    tasks = get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
+    if get_customers:
+        for task in tasks:
+            if task.customer_id:
+                task.customer = get_customer(task.customer_id)
+    return tasks
 
 
 @router.get("/divisions")

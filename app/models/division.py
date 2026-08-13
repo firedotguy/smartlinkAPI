@@ -15,7 +15,7 @@ class Division(BaseModel):
 
 class EmployeeDivision(BaseModel):
     id: int = Field(validation_alias="division_id")
-    id2: int = Field(validation_alias="id")
+    id2: int | None = Field(None, validation_alias="id")
 
     position: str | None = None
     is_member: int2bool = Field(True, validation_alias="is_work")
