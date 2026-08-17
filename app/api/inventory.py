@@ -28,6 +28,24 @@ def get_employee_items(id: int) -> list[Item]:
     ]
 
 
+def get_task_items(id: int) -> list[Item]:
+    l.info("get task items id=%s", id)
+    return [
+        Item.model_validate(item)
+        for item in dict2list_validator(api_call("inventory", "get_inventory_amount", location=ItemLocation.task, object_id=id)["data"])
+    ]
+
+
+def split_inventory(id: int, amount: int) -> int:
+    l.info("split inventory id=%s amount=%s", id, amount)
+    return api_call("inventory", "split_inventory", post=True, id=id, amount=amount)["new_id"]
+
+
+def transfer_inventory(id: int, employee_id: int, destination: str):  # id not list because userside always transfers only first item
+    l.info("transfer inventory id=%s src=%s dst=%s", id, employee_id, destination)
+    api_call("inventory", "transfer_inventory", post=True, inventory_id=id, dst_account=destination, employee_id=employee_id)
+
+
 def get_employees_inventory_ids() -> dict[str, int]:
     l.info("get employees inventory ids")
     return {inventory["name"]: int(id) for id, inventory in api_call("inventory", "get_inventory_storage")["data"].items()}

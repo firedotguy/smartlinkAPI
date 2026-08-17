@@ -76,6 +76,11 @@ def upstream_error_handler(request: Request, exc: UpstreamError):
     return JSONResponse({"detail": exc.message, "upstream": exc.payload}, exc.status)
 
 
+@app.exception_handler(500)
+def internal_error_handler(request: Request, exc):
+    return JSONResponse({"detail": "internal server error"}, 500)
+
+
 app.include_router(router)
 
 

@@ -1,4 +1,6 @@
+from collections import defaultdict
 from datetime import datetime
+from json import loads
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -6,10 +8,12 @@ from sqlalchemy.orm import Session
 
 from app.api.attach import get_task_attachs
 from app.api.customer import get_customer
+from app.api.inventory import get_employee_items, get_task_items, split_inventory, transfer_inventory
 from app.api.task import add_comment, add_task, get_task, get_task_ids, get_tasks
 from app.db.crud import get_division_name, get_employee_name
 from app.db.models import Employee
 from app.enums import TaskType
+from app.models.item import Item
 from app.utils.dependencies import db_dependency, employee_dependency
 
 router = APIRouter(prefix="/tasks")
@@ -23,6 +27,52 @@ def api_get_task(id: int, db: Session = Depends(db_dependency)):
         return JSONResponse({"detail": "task not found"}, 404)
 
     return task
+
+
+@router.get("/{id}/items")
+def api_get_task_items(id: int):
+    return get_task_items(id)
+
+
+@router.post("/{id}/items", status_code=204)
+def api_post_task_items(id: int, items: str, employee: Employee = Depends(employee_dependency)):
+    if employee.inventory_id is None:
+        return JSONResponse({"detail": "employee has not storage"}, 404)
+
+    requested: dict[int, int] = {int(k): int(v) for k, v in loads(items).items()}
+    employee_items = get_employee_items(employee.inventory_id)
+    employee_items.sort(key=lambda item: item.amount)
+
+    by_category: dict[int, list[Item]] = defaultdict(list)
+    for item in employee_items:
+        by_category[item.category.id].append(item)
+
+    for category, required in requested.items():
+        if required <= 0:
+            return JSONResponse({"detail": f"invalid amount {required} for category {category}"}, 422)
+        available = sum(i.amount for i in by_category[category])
+        if available == 0:
+            return JSONResponse({"detail": f"employee has no items with category {category}"}, 404)
+        if available < required:
+            return JSONResponse({"detail": f"employee only has {available} of category {category} (tried to transfer {required})"}, 406)
+
+    to_transfer_ids: list[int] = []
+    for category, required in requested.items():
+        amount = 0
+        for item in employee_items:
+            if item.category.id != category:
+                continue
+            to_transfer_ids.append(item.id)
+
+            amount += item.amount
+            if amount > required:
+                split_inventory(item.id, item.amount - (amount - required))
+                break
+            if amount == required:
+                break
+
+    for item_id in to_transfer_ids:
+        transfer_inventory(item_id, employee.id, f"21203{id:07}")
 
 
 @router.post("/{id}/comments")
