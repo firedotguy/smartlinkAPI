@@ -12,13 +12,13 @@ l = get_logger("api.task")
 
 def get_task(id: int, employee_resolver: Callable[[int], str | None], division_resolver: Callable[[int], str | None]) -> Task | None:
     l.info("get task id=%s", id)
-    res = api_call("task", "show", id=id).get("data")
+    task = api_call("task", "show", id=id).get("data")
 
-    if res is None:
+    if task is None:
         l.error("task not found")
         return None
 
-    return Task.model_validate(res, context={**res, "employee_resolver": employee_resolver, "division_resolver": division_resolver})
+    return Task.model_validate(task, context={**task, "employee_resolver": employee_resolver, "division_resolver": division_resolver})
 
 
 def get_task_ids(

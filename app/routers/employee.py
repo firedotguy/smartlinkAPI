@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.customer import get_customer
 from app.api.employee import check_creds, get_employee, get_employee_id
+from app.api.inventory import get_employee_items
 from app.api.task import get_task_ids, get_tasks
 from app.db import Session
 from app.db.crud import get_division_name, get_divisions, get_employee_name, set_employee
@@ -57,6 +58,27 @@ def api_get_employee_me_tasks(
             if task.customer_id:
                 task.customer = get_customer(task.customer_id)
     return tasks
+
+
+@router.get("/me/items")
+def api_get_employee_me_items(employee: Employee = Depends(employee_dependency)):
+    if employee.inventory_id is None:
+        return JSONResponse({"detail": "employee has not storage"}, 404)
+
+    items = get_employee_items(employee.inventory_id)
+
+    # fold items with same category
+    categories: set[str] = set()
+    for item in items.copy():
+        if item.sn is not None or item.mac is not None:
+            continue
+        if item.category.name in categories:
+            next((i for i in items if i.category.name == item.category.name)).amount += item.amount
+            items.remove(item)
+            continue
+        categories.add(item.category.name)
+
+    return items
 
 
 @router.get("/divisions")

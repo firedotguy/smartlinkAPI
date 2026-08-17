@@ -16,6 +16,7 @@ class Employee(Base):
     username: Mapped[str] = mapped_column(unique=True)
     name: Mapped[str]
     token: Mapped[str | None]
+    inventory_id: Mapped[int | None]
 
 
 class Division(Base):

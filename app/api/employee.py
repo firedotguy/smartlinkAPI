@@ -18,13 +18,20 @@ def get_employee_id(*, username: str) -> int | None:
 
 def get_employee(id: int) -> Employee | None:
     l.info("get employee id=%s", id)
-    res = api_call("employee", "get_data", id=id).get("data", {}).get(str(id))
+    employee = api_call("employee", "get_data", id=id).get("data", {}).get(str(id))
 
-    if res is None:
+    if employee is None:
         l.error("employee not found")
         return None
 
-    return Employee.model_validate(res, context=res)
+    return Employee.model_validate(employee, context=employee)
+
+
+def get_employees() -> list[Employee]:
+    l.info("get employee")
+    employees = api_call("employee", "get_data")["data"]
+
+    return [Employee.model_validate(employee, context=employee) for employee in employees.values()]
 
 
 def check_creds(username: str, password: str) -> bool:
@@ -32,7 +39,7 @@ def check_creds(username: str, password: str) -> bool:
     return api_call("employee", "check_pass", login=username, pass_=password).get("result") == "OK"
 
 
-def get_division(id: int):
+def get_division(id: int) -> Division | None:
     l.debug("get division id=%s", id)
     division = api_call("employee", "get_division", id=id).get("data")
 
@@ -42,3 +49,10 @@ def get_division(id: int):
 
     division = list(division.values())[0]
     return Division.model_validate(division, context=division)
+
+
+def get_divisions() -> list[Division]:
+    l.debug("get divisions")
+    divisions = api_call("employee", "get_division")["data"]
+
+    return [Division.model_validate(division, context=division) for division in divisions.values()]

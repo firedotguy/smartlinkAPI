@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, ValidationInfo, field_validator
 
 from app.enums import Role
 from app.models import BaseModel
@@ -28,3 +28,11 @@ class Employee(EmployeeName):
     role: Role = Field(validation_alias="profile_id")
     allowed_addresses: dict2list[int] = Field([], validation_alias="access_address_id")
     allowed_task_assigning_addresses: dict2list[int] = Field([], validation_alias="task_allow_assign_address_id")
+
+    inventory_id: int | None = None
+
+    @field_validator("inventory_id", mode="after")
+    @classmethod
+    def validate_inventory_id(cls, _: None, info: ValidationInfo):
+        assert info.context
+        return info.context["inventory_resolver"](info.context["id"])

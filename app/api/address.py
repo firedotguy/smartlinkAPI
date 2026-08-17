@@ -14,10 +14,10 @@ def get_provinces():
 
 def get_building(id: int) -> Building | None:
     l.info("get building id=%s", id)
-    res = api_call("address", "get_house", building_id=id).get("data")
+    building = api_call("address", "get_house", building_id=id).get("data")
 
-    if res is None:
+    if building is None:
         l.error("building not found")
         return None
 
-    return Building.model_validate(list2model_validator(res), context=list2model_validator(res))
+    return Building.model_validate(list2model_validator(building), context=list2model_validator(building))

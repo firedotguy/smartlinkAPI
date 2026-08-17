@@ -18,3 +18,16 @@ def get_customer_items(id: int) -> list[Item]:
         Item.model_validate(item)
         for item in dict2list_validator(api_call("inventory", "get_inventory_amount", location=ItemLocation.customer, object_id=id)["data"])
     ]
+
+
+def get_employee_items(id: int) -> list[Item]:
+    l.info("get employee items id=%s", id)
+    return [
+        Item.model_validate(item)
+        for item in dict2list_validator(api_call("inventory", "get_inventory_amount", location=ItemLocation.storage, object_id=id)["data"])
+    ]
+
+
+def get_employees_inventory_ids() -> dict[str, int]:
+    l.info("get employees inventory ids")
+    return {inventory["name"]: int(id) for id, inventory in api_call("inventory", "get_inventory_storage")["data"].items()}

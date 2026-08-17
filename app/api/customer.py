@@ -12,13 +12,13 @@ l = get_logger("api.customer")
 
 def get_customer(id: int) -> Customer | None:
     l.info("get customer id=%s", id)
-    res = api_call("customer", "get_data", id=id).get("data")
+    customer = api_call("customer", "get_data", id=id).get("data")
 
-    if res is None:
+    if customer is None:
         l.error("customer not found")
         return None
 
-    return Customer.model_validate(res, context=res)
+    return Customer.model_validate(customer, context=customer)
 
 
 def search_customers(query: str) -> list[CustomerSearch]:
@@ -52,13 +52,13 @@ def search_customers(query: str) -> list[CustomerSearch]:
 
 def get_building_customers(id: int) -> list[CustomerBuilding]:
     l.info("get building customers id=%s", id)
-    res = custom_api_call("building/tab_body", json=False, section="customer", id=id)
+    customers = custom_api_call("building/tab_body", json=False, section="customer", id=id)
 
-    if f"Building #{id} not found" in res:
+    if f"Building #{id} not found" in customers:
         l.error("building not found")
         return []
 
-    return [CustomerBuilding.model_validate(customer, context=customer) for customer in parse(res, add_ids=True) if customer.get("Фамилия Имя Отчество")]
+    return [CustomerBuilding.model_validate(customer, context=customer) for customer in parse(customers, add_ids=True) if customer.get("Фамилия Имя Отчество")]
 
 
 def rewrite_sn(id: int, agreement: str, sn: str) -> str | None:

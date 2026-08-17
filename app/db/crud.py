@@ -12,18 +12,11 @@ def set_employee(db: Session, id: int, username: str, token: str):
     l.info("set employee id=%s username=%s token=%s", id, username, mask_token(token))
 
     employee = db.query(Employee).where(Employee.id == id).first()
-    if employee:
-        employee.username = username  # на всякий случай
-        employee.token = token
-        l.debug("update employee")
-    else:
-        employee = api_get_employee(id)
-        if not employee:
-            l.error("employee not found")
-            return
-
-        db.add(Employee(id=id, username=username, token=token, name=employee.name, role=employee.role))
-        l.debug("create employee")
+    if not employee:
+        l.error("employee not found")
+        return
+    employee.username = username
+    employee.token = token
     db.commit()
 
 
