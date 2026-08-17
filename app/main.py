@@ -4,9 +4,10 @@ from typing import Callable
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from uvicorn import run
 
+from app.api import UpstreamError
 from app.api.device import get_olts
 from app.api.inventory import get_item_categories
 from app.api.tariff import get_tariffs
@@ -68,6 +69,11 @@ async def middleware(request: Request, call_next: Callable) -> Response:
     # custom access log
     l.info(format_request(request, response, round(time() - start, 2), LOG_COLORFUL), extra={"highlighter": None})
     return response
+
+
+@app.exception_handler(UpstreamError)
+def upstream_error_handler(request: Request, exc: UpstreamError):
+    return JSONResponse({"detail": exc.message, "upstream": exc.payload}, exc.status)
 
 
 app.include_router(router)

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from time import time
 
-from requests import Session
+from requests import RequestException, Session
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 
@@ -13,6 +13,15 @@ l = get_logger("api")
 session = Session()
 authed = False
 disable_warnings(category=InsecureRequestWarning)
+
+
+class UpstreamError(Exception):
+    def __init__(self, message: str, status: int = 502, payload: dict | None = None):
+        super().__init__(message)
+        self.message = message
+        self.status = status
+        self.payload = payload
+
 
 # def get_page(url: str) -> Response:
 #     l.debug('get %s', url)
@@ -39,15 +48,31 @@ def api_call(cat: str, action: str, post: bool = False, timeout: int = 30, **par
 
     start = time()
     if post:
-        res = session.post(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout, verify=False)
+        method = session.post
     else:
-        res = session.get(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout, verify=False)
+        method = session.get
+
+    try:
+        res = method(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout, verify=False)
+    except RequestException as e:
+        l.error("api_call failed: %s", e)
+        raise UpstreamError(f"upstream unreachable: {e}", 504) from e
 
     l.debug("< %s in %sms", res.json(), round((time() - start) * 1000))
 
     if not res.ok:
         l.warning("api_call res not ok code=%s", res.status_code)
-    return res.json()
+    try:
+        data = res.json()
+    except ValueError as e:
+        raise UpstreamError(f"{cat}.{action} returned non-json", 502, {"body": res.text[:500]}) from e
+
+    if (isinstance(data, dict) and (data.get("Error") or data.get("error") or data.get("result", True) is False)) or not res.ok:
+        error = data.get("Error", data.get("error", "result is false" if data.get("result", True) is False else "invalid status code"))
+        l.error("error: %s code=%s", error, res.status_code)
+        raise UpstreamError(error, 502, data)
+
+    return data
 
 
 def custom_api_call(url: str, *, json: bool = True, **params):
