@@ -9,6 +9,7 @@ from app.db import Session
 from app.db.crud import get_division_name, get_divisions, get_employee_name, set_employee
 from app.models.employee import Employee
 from app.utils.dependencies import db_dependency, employee_dependency
+from app.utils.items import fold_categories
 from app.utils.token import gen_token
 
 router = APIRouter(prefix="/employees")
@@ -65,20 +66,7 @@ def api_get_employee_me_items(employee: Employee = Depends(employee_dependency))
     if employee.inventory_id is None:
         return JSONResponse({"detail": "employee has not storage"}, 404)
 
-    items = get_employee_items(employee.inventory_id)
-
-    # fold items with same category
-    categories: set[str] = set()
-    for item in items.copy():
-        if item.sn is not None or item.mac is not None:
-            continue
-        if item.category.name in categories:
-            next((i for i in items if i.category.name == item.category.name)).amount += item.amount
-            items.remove(item)
-            continue
-        categories.add(item.category.name)
-
-    return items
+    return fold_categories(get_employee_items(employee.inventory_id))
 
 
 @router.get("/divisions")

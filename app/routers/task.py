@@ -6,32 +6,45 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.api.addata import set_adddata
 from app.api.attach import get_task_attachs
-from app.api.customer import get_customer
+from app.api.customer import get_customer as api_get_customer
 from app.api.inventory import get_employee_items, get_task_items, split_inventory, transfer_inventory
 from app.api.task import add_comment, add_task, get_task, get_task_ids, get_tasks
 from app.db.crud import get_division_name, get_employee_name
 from app.db.models import Employee
-from app.enums import TaskType
+from app.enums import AddataObjectType, TaskType
 from app.models.item import Item
 from app.utils.dependencies import db_dependency, employee_dependency
+from app.utils.items import fold_categories
 
 router = APIRouter(prefix="/tasks")
 
 
 @router.get("/{id}")
-def api_get_task(id: int, db: Session = Depends(db_dependency)):
+def api_get_task(id: int, get_customer: bool = False, db: Session = Depends(db_dependency)):
     task = get_task(id, lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
 
     if task is None:
         return JSONResponse({"detail": "task not found"}, 404)
 
+    if get_customer and task.customer_id:
+        task.customer = api_get_customer(task.customer_id)
+
     return task
+
+
+@router.patch("/{id}", status_code=204)
+def api_patch_task(id: int, tariff: str | None = None, catv: int | None = None):
+    if tariff:
+        set_adddata(id, AddataObjectType.task, 25, tariff)
+    if catv:
+        set_adddata(id, AddataObjectType.task, 69, catv)
 
 
 @router.get("/{id}/items")
 def api_get_task_items(id: int):
-    return get_task_items(id)
+    return fold_categories(get_task_items(id))
 
 
 @router.post("/{id}/items", status_code=204)
@@ -72,7 +85,20 @@ def api_post_task_items(id: int, items: str, employee: Employee = Depends(employ
                 break
 
     for item_id in to_transfer_ids:
-        transfer_inventory(item_id, employee.id, f"21203{id:07}")
+        transfer_inventory(item_id, f"21203{id:07}", employee.id)
+
+
+@router.delete("/{id}/items/{category_id}", status_code=204)
+def api_delete_task_items(id: int, category_id: int, employee: Employee = Depends(employee_dependency)):
+    if employee.inventory_id is None:
+        return JSONResponse({"detail": "employee has not storage"}, 404)
+
+    items = [item.id for item in get_task_items(id) if item.category.id == category_id]
+    if not items:
+        return JSONResponse({"detail": "category not found"}, 404)
+
+    for item in items:
+        transfer_inventory(item, f"20403{employee.inventory_id:07}", employee.id)
 
 
 @router.post("/{id}/comments")
@@ -148,5 +174,5 @@ def api_get_tasks(
     if get_customers:
         for task in tasks:
             if task.customer_id:
-                task.customer = get_customer(task.customer_id)
+                task.customer = api_get_customer(task.customer_id)
     return tasks

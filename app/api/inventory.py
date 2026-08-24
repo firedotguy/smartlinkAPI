@@ -41,8 +41,8 @@ def split_inventory(id: int, amount: int) -> int:
     return api_call("inventory", "split_inventory", post=True, id=id, amount=amount)["new_id"]
 
 
-def transfer_inventory(id: int, employee_id: int, destination: str):  # id not list because userside always transfers only first item
-    l.info("transfer inventory id=%s src=%s dst=%s", id, employee_id, destination)
+def transfer_inventory(id: int, destination: str, employee_id: int):  # id not list because userside always transfers only first item
+    l.info("transfer inventory id=%s dst=%s employee_id=%s", id, destination, employee_id)
     api_call("inventory", "transfer_inventory", post=True, inventory_id=id, dst_account=destination, employee_id=employee_id)
 
 

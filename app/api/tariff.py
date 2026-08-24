@@ -7,4 +7,6 @@ l = get_logger("api.tariff")
 
 def get_tariffs() -> dict[int, Tariff]:
     l.info("get tariffs")
-    return {int(tariff["billing_uuid"]): Tariff.new(tariff["name"]) for tariff in api_call("tariff", "get")["data"].values()}
+    return {
+        int(tariff.get("billing_ext_id") or tariff.get("billing_uuid")): Tariff.new(tariff["name"]) for tariff in api_call("tariff", "get")["data"].values()
+    }

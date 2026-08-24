@@ -26,8 +26,10 @@ class Employee(EmployeeName):
     divisions: dict2models[EmployeeDivision] = Field(validation_alias="division")
     rights: dict2list[int]
     role: Role = Field(validation_alias="profile_id")
+
     allowed_addresses: dict2list[int] = Field([], validation_alias="access_address_id")
     allowed_task_assigning_addresses: dict2list[int] = Field([], validation_alias="task_allow_assign_address_id")
+    access: list[str] = Field([], validate_default=True)
 
     inventory_id: int | None = None
 
@@ -36,3 +38,24 @@ class Employee(EmployeeName):
     def validate_inventory_id(cls, _: None, info: ValidationInfo):
         assert info.context
         return info.context["inventory_resolver"](info.context["id"])
+
+    @field_validator("access", mode="after")
+    @classmethod
+    def validate_access(cls, _: None, info: ValidationInfo):
+        assert info.context
+        access = []
+        addresses = map(int, info.context["access_address_id"])
+
+        def contains(*ids: int) -> bool:
+            for id in ids:
+                if id in addresses:
+                    return True
+            return False
+
+        if contains(-1, 527, 10986):
+            access.append("osh")
+
+        if contains(-1, 7918, 10988, 10989):
+            access.append("bishkek")
+
+        return access

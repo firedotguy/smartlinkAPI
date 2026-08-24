@@ -39,7 +39,7 @@ class ActionType(Enum):
     ont_rewrite_mac = "ont_rewrite_mac"
 
 
-class AddataCategories(Enum):
+class AddataObjectType(Enum):
     cable_line = 2
     radio = 6
     house = 7

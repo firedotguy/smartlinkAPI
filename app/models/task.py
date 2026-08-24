@@ -64,6 +64,8 @@ _price = Annotated[str | float | None, addata(26)]
 _connect_type = Annotated[str | None, addata(27)]
 _tariff = Annotated[str | None, addata(25)]
 _extra_services = Annotated[list[str] | None, BeforeValidator(str2list_validator), addata(83)]
+_catv = Annotated[int | None, addata(69)]
+addata_default = Field(None, validate_default=True)
 
 
 class Task(BaseModel):
@@ -95,16 +97,17 @@ class Task(BaseModel):
     customer_id: list2model[int] | None = Field(None, validation_alias="customer")
     customer: Customer | None = Field(None, validation_alias="not_customer_pls_fill_manually")
 
-    tariff: _tariff = Field(None, validate_default=True)
-    appeal_type: _appeal_type = Field(None, validate_default=True)
-    appeal_phone: _appeal_phone = Field(None, validate_default=True)
-    appeal_reason: _appeal_reason = Field(None, validate_default=True)
-    not_use_reason: _not_use_reason = Field(None, validate_default=True)
+    tariff: _tariff = addata_default
+    appeal_type: _appeal_type = addata_default
+    appeal_phone: _appeal_phone = addata_default
+    appeal_reason: _appeal_reason = addata_default
+    not_use_reason: _not_use_reason = addata_default
 
-    solve: _solve = Field(None, validate_default=True)
-    price: _price = Field(None, validate_default=True)
-    connect_type: _connect_type = Field(None, validate_default=True)
-    extra_services: _extra_services = Field(None, validate_default=True)
+    solve: _solve = addata_default
+    price: _price = addata_default
+    connect_type: _connect_type = addata_default
+    extra_services: _extra_services = addata_default
+    catv: _catv = addata_default
 
     @field_validator("employees", mode="before")
     @classmethod
