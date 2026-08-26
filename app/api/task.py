@@ -126,3 +126,8 @@ def add_task(
         dopf_29=appeal_phone,
         dopf_28=appeal_type
     )["Id"]
+
+
+def change_status(id: int, status_id: int, author_id: int) -> None:
+    l.info("change task status id=%s status=%s auhtor=%s", id, status_id, author_id)
+    api_call("task", "change_state", post=True, id=id, state_id=status_id, employee_id=author_id, nogi="bogi")

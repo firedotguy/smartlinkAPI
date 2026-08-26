@@ -12,7 +12,7 @@ from app.api.addata import set_adddata
 from app.api.attach import get_task_attachs, upload_attach
 from app.api.customer import get_customer as api_get_customer
 from app.api.inventory import get_employee_items, get_task_items, split_inventory, transfer_inventory
-from app.api.task import add_comment, add_task, get_task, get_task_ids, get_tasks
+from app.api.task import add_comment, add_task, change_status, get_task, get_task_ids, get_tasks
 from app.db.crud import get_division_name, get_employee_name
 from app.db.models import Employee
 from app.enums import AddataObjectType, AttachObjectType, TaskType
@@ -111,6 +111,45 @@ def api_post_task_comments(id: int, content: str, employee: Employee = Depends(e
 @router.get("/{id}/attachs")
 def api_get_task_attachs(id: int):
     return get_task_attachs(id)
+
+
+@router.post("/{id}/attachs", status_code=201)
+async def api_post_task_attachs(id: int, attachs: list[UploadFile]):
+    loop = get_running_loop()
+    return await gather(
+        *[
+            loop.run_in_executor(
+                None,
+                partial(upload_attach, id, AttachObjectType.task, (attach.filename or "image.png", await attach.read(), attach.content_type or "image/png"))
+            )
+            for attach in attachs
+        ]
+    )
+
+
+@router.post("/{id}/get-agreement", status_code=204)
+def api_post_task_get_agreement(id: int, employee: Employee = Depends(employee_dependency)):
+    change_status(id, 16, employee.id)
+
+
+@router.post("/{id}/add-ont", status_code=204)
+def api_post_task_add_ont(id: int, employee: Employee = Depends(employee_dependency)):
+    change_status(id, 17, employee.id)
+
+
+@router.post("/{id}/register-ont", status_code=204)
+def api_post_task_register_ont(id: int, employee: Employee = Depends(employee_dependency)):
+    change_status(id, 19, employee.id)
+
+
+@router.post("/{id}/complete", status_code=204)
+def api_post_task_complete(id: int, employee: Employee = Depends(employee_dependency)):
+    change_status(id, 12, employee.id)
+
+
+@router.post("/{id}/start", status_code=204)
+def api_post_task_start(id: int, employee: Employee = Depends(employee_dependency)):
+    change_status(id, 3, employee.id)
 
 
 @router.get("/attachs")
