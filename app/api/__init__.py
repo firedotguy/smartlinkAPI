@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from time import time
+from typing import Literal, overload
 
 from requests import RequestException, Session
 from urllib3 import disable_warnings
@@ -31,7 +32,21 @@ class UpstreamError(Exception):
 #     return res
 
 
-def api_call(cat: str, action: str, post: bool = False, timeout: int = 30, **params) -> dict:
+@overload
+def api_call(
+    cat: str, action: str, post: bool = ..., raw: Literal[False] = ..., file: tuple[str, bytes, str] | None = ..., timeout: int = ..., **params
+) -> dict: ...
+
+
+@overload
+def api_call(
+    cat: str, action: str, post: bool = ..., raw: Literal[True] = ..., file: tuple[str, bytes, str] | None = ..., timeout: int = ..., **params
+) -> bytes: ...
+
+
+def api_call(
+    cat: str, action: str, post: bool = False, raw: bool = False, file: tuple[str, bytes, str] | None = None, timeout: int = 30, **params
+) -> dict | bytes:
     _params = {}
     for k, v in params.items():
         k = k.rstrip("_")
@@ -53,22 +68,35 @@ def api_call(cat: str, action: str, post: bool = False, timeout: int = 30, **par
         method = session.get
 
     try:
-        res = method(BASE_URL + "api.php", params={"cat": cat, "action": action, "key": API_KEY, **_params}, timeout=timeout, verify=False)
+        res = method(
+            BASE_URL + "api.php",
+            params={"cat": cat, "action": action, "key": API_KEY, **_params},
+            files={"file": file} if file else None,
+            timeout=timeout,
+            verify=False
+        )
     except RequestException as e:
         l.error("api_call failed: %s", e)
         raise UpstreamError(f"upstream unreachable: {e}", 504) from e
 
-    l.debug("< %s in %sms", res.json(), round((time() - start) * 1000))
+    if raw:
+        l.debug("< raw")
+        return res.content
 
     if not res.ok:
         l.warning("api_call res not ok code=%s", res.status_code)
+
     try:
         data = res.json()
     except ValueError as e:
+        l.debug("< %s in %sms", res.text, round((time() - start) * 1000))
         raise UpstreamError(f"{cat}.{action} returned non-json", 502, {"body": res.text[:500]}) from e
+    l.debug("< %s in %sms", data, round((time() - start) * 1000))
 
-    if (isinstance(data, dict) and (data.get("Error") or data.get("error") or data.get("result", True) is False)) or not res.ok:
-        error = data.get("Error", data.get("error", "result is false" if data.get("result", True) is False else "invalid status code"))
+    if (
+        isinstance(data, dict) and (data.get("Error") or data.get("error") or (str(data.get("result", "")).isdigit() and not bool(int(data.get("result", 1)))))
+    ) or not res.ok:
+        error = data.get("Error") or data.get("error") or data.get("msg") or "unknown error"
         l.error("error: %s code=%s", error, res.status_code)
         raise UpstreamError(error, 502, data)
 

@@ -1,19 +1,21 @@
+from asyncio import gather, get_running_loop
 from collections import defaultdict
 from datetime import datetime
+from functools import partial
 from json import loads
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.addata import set_adddata
-from app.api.attach import get_task_attachs
+from app.api.attach import get_task_attachs, upload_attach
 from app.api.customer import get_customer as api_get_customer
 from app.api.inventory import get_employee_items, get_task_items, split_inventory, transfer_inventory
 from app.api.task import add_comment, add_task, get_task, get_task_ids, get_tasks
 from app.db.crud import get_division_name, get_employee_name
 from app.db.models import Employee
-from app.enums import AddataObjectType, TaskType
+from app.enums import AddataObjectType, AttachObjectType, TaskType
 from app.models.item import Item
 from app.utils.dependencies import db_dependency, employee_dependency
 from app.utils.items import fold_categories
@@ -101,7 +103,7 @@ def api_delete_task_items(id: int, category_id: int, employee: Employee = Depend
         transfer_inventory(item, f"20403{employee.inventory_id:07}", employee.id)
 
 
-@router.post("/{id}/comments")
+@router.post("/{id}/comments", status_code=201)
 def api_post_task_comments(id: int, content: str, employee: Employee = Depends(employee_dependency)):
     return {"id": add_comment(id, content, employee.id)}
 
@@ -119,7 +121,7 @@ def api_get_task_multiple_attachs(ids: list[int]):
     return attachs
 
 
-@router.post("")
+@router.post("", status_code=201)
 def api_post_task(
     type: TaskType,
     customer_id: int | None = None,

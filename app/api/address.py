@@ -4,7 +4,7 @@ from app.models.province import Province
 from app.utils.logger import get_logger
 from app.utils.pd import list2model_validator
 
-l = get_logger("api.employee")
+l = get_logger("api.address")
 
 
 def get_provinces():
