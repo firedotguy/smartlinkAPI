@@ -208,7 +208,7 @@ def api_get_tasks(
 
     ids = get_task_ids(completed_at_from=completed_at_from, completed_at_to=completed_at_to, type=types, author_id=authors)
 
-    if len(ids) > 100:
+    if len(ids) > 500:
         return JSONResponse({"detail": "too wide query"}, 400)
 
     if not ids:

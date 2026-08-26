@@ -53,7 +53,7 @@ def api_get_employee_me_tasks(
     if not ids:
         return []
 
-    if len(ids) > 100:
+    if len(ids) > 500:
         return JSONResponse({"detail": "too wide query"}, 400)
 
     tasks = get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
