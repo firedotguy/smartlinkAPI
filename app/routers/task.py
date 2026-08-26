@@ -211,6 +211,9 @@ def api_get_tasks(
     if len(ids) > 100:
         return JSONResponse({"detail": "too wide query"}, 400)
 
+    if not ids:
+        return []
+
     tasks = get_tasks(*ids, employee_resolver=lambda id: get_employee_name(db, id), division_resolver=lambda id: get_division_name(db, id))
     if get_customers:
         for task in tasks:

@@ -50,6 +50,9 @@ def api_get_employee_me_tasks(
 
     ids = get_task_ids(type=types, status=statuses, employee_id=employee.id, limit=limit)
 
+    if not ids:
+        return []
+
     if len(ids) > 100:
         return JSONResponse({"detail": "too wide query"}, 400)
 
