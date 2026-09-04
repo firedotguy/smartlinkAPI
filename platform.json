@@ -2,7 +2,8 @@
     "dev": false,
     "force_dev": false,
     "stable": true,
-    "compatible_versions": ["0.4.3", "0.4.3-dev.1"],
+    "smartlink_compatible_versions": ["0.4.3", "0.4.3-dev.1"],
+    "smartmount_compatible_versions": ["0.1.0"],
     "announcement": {
         "title": "SmartLinkAPI 3.0.0",
         "created_at": "29.07.2026",
