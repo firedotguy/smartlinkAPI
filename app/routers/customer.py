@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.attach import get_customer_attachs
-from app.api.customer import get_customer, rewrite_mac, rewrite_sn, search_customers
+from app.api.customer import get_customer, rewrite_mac, rewrite_sn, search_customers, update_customer
 from app.api.device import get_customer_olt, get_ont_olt
 from app.api.inventory import get_customer_items
 from app.api.task import get_task_ids, get_tasks
@@ -50,6 +50,15 @@ def api_get_customer_attachs(id: int):
 @router.get("/{id}/items")
 def api_get_customer_items(id: int):
     return get_customer_items(id)
+
+
+@router.patch("/{id}", status_code=204)
+def api_patch_customer(id: int, phones: str):
+    list_phones = phones.split(",")
+    if len(list_phones) < 2:
+        return JSONResponse({"detail": "customer can have at least 2 phone numbers"}, 422)
+
+    update_customer(id, list_phones)
 
 
 @router.post("/{id}/rewrite-sn", status_code=204)

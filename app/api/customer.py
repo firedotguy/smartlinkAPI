@@ -79,3 +79,17 @@ def rewrite_mac(id: int, agreement: str) -> str | None:
     if int(res["result"]):
         l.error("fail to rewrite mac: %s", res["msg"])
         return res["msg"]
+
+
+def update_customer(id: int, phones: list[str]) -> None:
+    api_call(
+        "customer",
+        "edit",
+        post=True,
+        id=id,
+        phone0=phones[0],
+        phone1=phones[1],
+        phone2=phones[2] if len(phones) > 2 else None,
+        phone3=phones[3] if len(phones) > 3 else None,
+        phone4=phones[4] if len(phones) > 4 else None
+    )
