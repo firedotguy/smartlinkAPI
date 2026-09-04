@@ -94,7 +94,7 @@ def api_call(
     l.debug("< %s in %sms", data, round((time() - start) * 1000))
 
     if (
-        isinstance(data, dict) and (data.get("Error") or data.get("error") or (str(data.get("result", "")).isdigit() and not bool(int(data.get("result", 1)))))
+        isinstance(data, dict) and (data.get("Error") or data.get("error") or (str(data.get("result", "")).isdigit() and bool(int(data.get("result", 0)))))
     ) or not res.ok:
         error = data.get("Error") or data.get("error") or data.get("msg") or "unknown error"
         l.error("error: %s code=%s", error, res.status_code)
