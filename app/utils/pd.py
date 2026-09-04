@@ -106,8 +106,10 @@ def addata(id: int, *other_ids: int) -> BeforeValidator:
 
 
 def str2list_validator(value: str | None) -> list:
-    if value is None:
+    if not value:
         return []
+    if "[" not in value:
+        return [value]
     return loads(value)
 
 
