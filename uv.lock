@@ -1216,6 +1216,18 @@ wheels = [
 ]
 
 [[package]]
+name = "scheduler"
+version = "0.8.11"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typeguard" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/f2/56aaad8051752a321de1d8a04c80345e21f2c6e573fb9a1fb71f11141a41/scheduler-0.8.11.tar.gz", hash = "sha256:b2234a069448a617abbc511b9e18f48c4deb3dcd9dcc51721d9c90ef2943b72a", size = 32076, upload-time = "2026-02-15T22:43:29.519Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/f9/3e2e4944104b47e6b075fdc9cb890758ead01fb0d203d8508ecb9cc76680/scheduler-0.8.11-py3-none-any.whl", hash = "sha256:db55040e0f1c0824a9b02ff37fcecdcd10c2ee1d5b86d1761648981a555a00f8", size = 34379, upload-time = "2026-02-15T22:43:28.047Z" },
+]
+
+[[package]]
 name = "sentry-sdk"
 version = "2.67.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1253,6 +1265,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "requests" },
     { name = "rich" },
+    { name = "scheduler" },
     { name = "sqlalchemy" },
 ]
 
@@ -1269,6 +1282,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "requests", specifier = ">=2.33.1" },
     { name = "rich", specifier = ">=14.3.3" },
+    { name = "scheduler", specifier = ">=0.8.11" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
 ]
 
@@ -1327,6 +1341,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b5/b4/205b0d5241d934e8add0c38aa924c4f9fb7330834ff11e5444db964ec3f9/starlette-1.6.0.tar.gz", hash = "sha256:d4e3ac5e546444960c710297a3c9fc3f7ebae1b7e963f3d36173b49da535be9b", size = 2716969, upload-time = "2026-08-08T18:27:57.512Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/cb/6a6a47d5b464bd08695d254f3da6e7986cc70c9fa5d778eda57538edfe56/starlette-1.6.0-py3-none-any.whl", hash = "sha256:a86dd39d14bb45f85a3d18525215a9ef0cfd1f192ac793220e72598c90335f0c", size = 75969, upload-time = "2026-08-08T18:27:56.196Z" },
+]
+
+[[package]]
+name = "typeguard"
+version = "4.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b4/de/4420db493fa8fc0856d5e5c1b159c63a323d2de2317babe36b01568928e8/typeguard-4.6.0.tar.gz", hash = "sha256:e7414f09111317de3e335de92cd397c5c0ca00b1cc1676de12e1d444a79b3f21", size = 82330, upload-time = "2026-07-26T08:40:23.207Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8f/eb/461d5f167b6f5c7d97696f397c82f82e3480e003fce3f0a1cd1dd26e2eb2/typeguard-4.6.0-py3-none-any.whl", hash = "sha256:79878165bb86f2cf5d41d159a0ff1792a796cf496882d2fe1b1c6c7049b9cdd7", size = 36884, upload-time = "2026-07-26T08:40:21.868Z" },
 ]
 
 [[package]]

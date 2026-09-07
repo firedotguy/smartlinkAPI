@@ -8,7 +8,7 @@ def decode_sn(value: str) -> str:
     data: bytes | None = None
 
     if fullmatch(r"[A-Za-z]{4}[0-9A-Fa-f]{8}", compact):
-        return compact[:4].upper() + compact[4:].upper()
+        return compact.upper()
 
     if len(compact) == 16:
         try:

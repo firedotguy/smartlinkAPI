@@ -16,6 +16,7 @@ dependencies = [
     "python-multipart>=0.0.32",
     "requests>=2.33.1",
     "rich>=14.3.3",
+    "scheduler>=0.8.11",
     "sqlalchemy>=2.0.49",
 ]
 

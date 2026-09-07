@@ -16,7 +16,7 @@ l = get_logger("snmp")
 
 def get_session(olt: Olt) -> Session | None:
     l.debug("connect to olt %s community=%s", olt.ip, olt.snmp_community)
-    return Session(olt.ip, version=olt.snmp_protocol, community=olt.snmp_community, timeout=5)
+    return Session(olt.ip, version=olt.snmp_protocol, community=olt.snmp_community, timeout=20, retries=3)
 
 
 def update_ont_indexes():
@@ -33,6 +33,8 @@ def update_ont_indexes():
         except TimeoutError:
             l.error("timeout connecting to olt ip=%s", olt.ip)
             continue
+        finally:
+            session.close()
 
         for sn in onts:
             try:
@@ -40,11 +42,10 @@ def update_ont_indexes():
             except ValueError as e:
                 l.warning("skip invalid ont olt=%s sn=%r: %s", olt.ip, sn.value, e)
 
-        session.close()
         db.commit()
 
 
-def _get(session: Session, name: str, ont: Ont, port_id: int | None = None, *, add_ont_id: bool = True, default=None):
+def _get(session: Session, name: str, ont: Ont, port_id: int | None = None, *, add_ont_id: bool = True, default: bool | int | None = None):
     oids = {
         "temp_olt": "23.1.1",
         "tx_olt": "23.1.4",
@@ -89,12 +90,8 @@ def _get(session: Session, name: str, ont: Ont, port_id: int | None = None, *, a
     res = session.get(f"1.3.6.1.4.1.2011.6.128.1.1.2.{oid}")[0].value
     l.debug("< %s", res)
 
-    if res in ("2147483647", "No Such Instance currently exists at this OID", "00 00 00 00 00 00 00 00 00 00 00", "0.0.0.0"):
-        if default is not None:
-            return default
-        return None
-    if res == "-1" and default is not None:
-        return default
+    if res in ("2147483647", "No Such Instance currently exists at this OID", "00 00 00 00 00 00 00 00 00 00 00", "0.0.0.0", "-1"):
+        return default if default is not None else None
 
     elif res.lstrip("-").isdigit():
         return int(res)
@@ -102,7 +99,7 @@ def _get(session: Session, name: str, ont: Ont, port_id: int | None = None, *, a
 
 
 def get_ont(olt: Olt, sn: str) -> dict | None:
-    l.info("get ont sn=%s", sn)
+    l.info("get ont sn=%s olt=%s", sn, olt.id)
     ont = get_ont_index(next(get_db()), sn)
     if ont is None:
         return
@@ -143,7 +140,7 @@ def get_ont(olt: Olt, sn: str) -> dict | None:
                 "status": convert_status(_get(session, "eth_status", ont, i, default=False)),
                 "actual_status": convert_status(_get(session, "eth_actual_status", ont, i, default=False))
             }
-            for i in range(1, _get(session, "eth_count", ont) + 1)
+            for i in range(1, _get(session, "eth_count", ont, default=0) + 1)
         ],
         "catv": [
             {

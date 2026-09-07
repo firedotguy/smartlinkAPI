@@ -123,8 +123,8 @@ def clear_buffer(channel: Channel):
 
 def read_output(channel: Channel):
     output = ""
-    last_data_time = time()
-    start_time = time()
+    last_data = time()
+    start = time()
 
     while True:
         ready, _, _ = select([channel], [], [], 0.05)
@@ -132,7 +132,7 @@ def read_output(channel: Channel):
             data = channel.recv(32768).decode("utf-8", errors="ignore")
             if data:
                 output += data
-                last_data_time = time()
+                last_data = time()
                 if "---- More ( Press 'Q' to break ) ----" in data:
                     channel.send(b" ")
                     continue
@@ -141,15 +141,11 @@ def read_output(channel: Channel):
                     break
                 sleep(0.05)
 
-        if time() - last_data_time > 2 and len(output.strip().strip("\n").splitlines()) > 5:
-            print("no new data more than 2 seconds")
+        if time() - last_data > 3 and len(output.strip().strip("\n").splitlines()) > 5:
+            l.debug("no new data more than 3 seconds")
             break
-        if time() - last_data_time > 10 and len(output.strip().strip("\n").splitlines()) <= 5:
-            print("no new data more than 10 seconds")
-            print(output)
-            break
-        if time() - start_time > 5:
-            print("read output takes more than 5 seconds")
+        if time() - start > 5:
+            l.debug("read output takes more than 5 seconds")
             break
         sleep(0.01)
     return "\n".join(output.splitlines()[1:]) if output.count("\n") > 1 else output

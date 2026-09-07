@@ -1,17 +1,19 @@
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from time import time
 from typing import Callable
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from scheduler import Scheduler
 from uvicorn import run
 
 from app.api import UpstreamError
 from app.api.device import get_olts
 from app.api.inventory import get_item_categories
 from app.api.tariff import get_tariffs
-from app.config import HOST, INSIDE_TOKEN, LOG_COLORFUL, LOG_LEVEL, PORT, UPDATE_ONT_INDEXES_ON_STARTUP
+from app.config import HOST, INSIDE_TOKEN, LOG_COLORFUL, LOG_LEVEL, PORT
 from app.db import Session, create_db, get_db
 from app.db.crud import check_token
 from app.routers import router
@@ -32,8 +34,9 @@ async def lifespan(app: FastAPI):
     storage.tariffs = get_tariffs()
     storage.item_categories = get_item_categories()
     storage.olts = get_olts()
-    if UPDATE_ONT_INDEXES_ON_STARTUP:
-        update_ont_indexes()
+
+    scheduler = Scheduler()
+    scheduler.cyclic(timedelta(hours=2), update_ont_indexes)
 
     try:
         yield
