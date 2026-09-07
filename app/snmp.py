@@ -114,6 +114,8 @@ def get_ont(olt: Olt, sn: str) -> dict | None:
     else:
         mac = None
 
+    last_down_cause = _get(session, "last_down_cause", ont)
+
     return {
         "id": ont.ont_id,
         "ifindex": ont.ifindex,
@@ -130,7 +132,7 @@ def get_ont(olt: Olt, sn: str) -> dict | None:
         # },
         "last_up": decode_datetime(_get(session, "last_up", ont)),
         "last_down": decode_datetime(_get(session, "last_down", ont)),
-        "last_down_cause": OntLastDownCause(_get(session, "last_down_cause", ont)).name,
+        "last_down_cause": OntLastDownCause(last_down_cause).name if last_down_cause else None,
         "distance": check_none(_get(session, "distance", ont)),
         # "last_dying_gasp": decode_datetime(_get(session, "last_dying_gasp", ont)),
         "eth": [
@@ -149,7 +151,7 @@ def get_ont(olt: Olt, sn: str) -> dict | None:
                 "status": convert_status(_get(session, "catv_status", ont, i, default=False)),
                 "actual_status": convert_status(_get(session, "catv_actual_status", ont, i, default=False))
             }
-            for i in range(1, _get(session, "catv_count", ont) + 1)
+            for i in range(1, _get(session, "catv_count", ont, default=0) + 1)
         ],
         "model": check_none(_get(session, "model", ont)),
         "tx": check_none(_get(session, "tx", ont, default=0) / 100),
