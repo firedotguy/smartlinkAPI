@@ -44,7 +44,7 @@ def connect_ssh(ip: str) -> tuple[Channel, SSHClient]:
 
 
 def get_ont(channel: Channel, sn: str) -> dict:
-    ont = send(channel, f"display ont info by-sn {sn}", delay=0.1)
+    ont = send(channel, f"display ont info by-sn {sn}\n", delay=0.1)
 
     if "The required ONT does not exist" in ont:
         l.error("ont not found")
