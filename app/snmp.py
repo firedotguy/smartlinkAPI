@@ -9,7 +9,7 @@ from app.enums import EthDuplexMode, OntLastDownCause
 from app.models.item import Olt
 from app.utils import storage
 from app.utils.logger import get_logger
-from app.utils.snmp import check_none, convert_status, decode_datetime, decode_sn, get_eth_speed
+from app.utils.snmp import check_none, convert_status, decode_datetime, decode_sn, get_eth_speed, normalize_sn
 
 l = get_logger("snmp")
 
@@ -99,6 +99,7 @@ def _get(session: Session, name: str, ont: Ont, port_id: int | None = None, *, a
 
 
 def get_ont(olt: Olt, sn: str) -> dict | None:
+    sn = normalize_sn(sn)
     l.info("get ont sn=%s olt=%s", sn, olt.id)
     ont = get_ont_index(next(get_db()), sn)
     if ont is None:

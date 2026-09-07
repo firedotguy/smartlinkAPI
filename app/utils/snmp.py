@@ -2,6 +2,16 @@ from datetime import datetime
 from re import fullmatch
 
 
+def normalize_sn(value: str) -> str:
+    # accept both 4857544350BE2237 (full hex) and HWTC50BE2237 (ascii vendor + hex)
+    s = value.strip().replace(" ", "").replace("-", "").replace(":", "")
+    if fullmatch(r"[0-9A-Fa-f]{16}", s):
+        return bytes.fromhex(s)[:4].decode("ascii") + s[8:].upper()
+    if fullmatch(r"[A-Za-z]{4}[0-9A-Fa-f]{8}", s):
+        return s.upper()
+    raise ValueError(f"unexpected sn format {value!r}")
+
+
 def decode_sn(value: str) -> str:
     raw = value.strip()
     compact = raw.replace(" ", "")
